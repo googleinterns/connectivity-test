@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import proto.data_plane_pb2 as model
-
-
 def GetSegmentOfUrl(url: str, prefix: str) -> str:
     """
     Get the next segment from url following prefix. The return value is a segment without slash.

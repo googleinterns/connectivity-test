@@ -14,18 +14,24 @@ from unittest import TestCase
 
 from google.protobuf import text_format
 
+import proto.cloud_network_model_pb2 as entities
+import proto.rules_pb2 as rules
 from src.network_hierarchy import *
 
 
 # limitations under the License.
 class TestDataPlane(TestCase):
     def test_parse(self):
-        with open("test_data/combined_model_09022020.pb", "r") as f:
+        with open("test_data/test_project_sq2_09182020_2_ClearDep.pb", "r") as f:
             str = f.read()
 
-            topo: model.Project = text_format.Parse(str, model.Project())
+            topo: entities.Model = text_format.Parse(str, entities.Model())
 
-            dp = DataPlane()
-            dp.Parse(topo)
+            model = Model(topo)
+
+            for p in model.projects.values():
+                for n in p.networks.values():
+                    n.proto.name += "!!!!!!!!!!!test"
 
             print(topo)
+            print(model)

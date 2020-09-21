@@ -11,22 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import proto.rules_pb2 as rules
-import ipaddress
-
-
-def InIPv4Range(ip: int, ipRange: rules.Ipv4Range) -> bool:
-    """
-    Determine if the IP address ip is in the IP range.
-    """
-
-    if ipRange.mask > 32 or ipRange.mask < 0:
-        raise ValueError("The mask of ipRange is invalid: %d. Should be in [0,32]" % ipRange.mask)
-
-    mask = ~((1 << (32 - ipRange.mask)) - 1)
-    return ipRange.ip & mask == ip & mask
-
-
-def IPv4RangeToStr(ipRange: rules.Ipv4Range) -> str:
-    return str(ipaddress.IPv4Address(ipRange.ip)) + "/%d" % ipRange.mask
