@@ -52,6 +52,7 @@ message Model {
   repeated ExternalLBIPv6Address elb_v6_addresses = 11;
   repeated VPNGateway vpn_gateways = 15;
   repeated VPNTunnel vpn_tunnels = 16;
+  repeated CloudRouter cloud_routers = 34;
   repeated InstanceGroup instance_groups = 17;
   repeated NetworkEndpointGroup network_endpoint_groups = 18;
   repeated BackendService backend_services = 19;
@@ -437,6 +438,28 @@ message VPNTunnel {
 
   // Status of VPN tunnel.
   optional string status = 9;
+
+  // If routing_type is DYNAMIC: The url of the local cloud router that this VPN tunnel is attached to.
+  optional string cloud_router = 12;
+
+  // If routing_type is DYNAMIC.
+  optional bool use_cloud_routers_advertisements = 13;
+
+  // If routing_type is DYNAMIC, and do not use cloud route's advertisements
+  optional bool advertise_subnet_routes = 14;
+
+  // If routing_type is DYNAMIC
+  optional uint32 MED = 15;
+}
+
+message CloudRouter {
+  optional string id = 1;
+  optional string name = 2;
+  optional string url = 3;
+  optional string network = 4;
+  optional string region = 5;
+  optional bool advertise_subnet_routes = 6;
+  repeated Ipv4Range custom_prefixes = 7;
 }
 
 message InstanceGroup {
