@@ -52,16 +52,16 @@ message DestinationAndGeneration {
   optional Route route_template = 4;
 
   // The destinations have fixed builtin semantics in destination selection and actions.
-  //    - VPC_Peers:                   all active peering VPC networks
+  //   - VPC_PEERS:                  all active peering VPC networks
   //
-  //    - VPC_Peers_CustomRouting:     all active peering VPC networks that import custom routes from the route's network,
-  //                                   and simultaneously, the route's network export custom routes to them
+  //   - VPC_PEERS_CUSTOM_ROUTING:   all active peering VPC networks that import custom routes from the route's network,
+  //                                 and simultaneously, the route's network export custom routes to them
   //
-  //    - BGP_Peers_GlobalRouting:     all networks that establish a *live* BGP session to the route's network, and they
-  //                                   are in global routing mode
+  //   - BGP_PEERS_GLOBAL_ROUTING:   all networks that establish a *live* BGP session to the route's network, and they
+  //                                 are in global routing mode
   //
-  //    - BGP_Peers_RegionalRouting:   all networks that establish a *live* BGP session to the route's network, and they
-  //                                   are in regional routing mode
+  //   - BGP_PEERS_REGIONAL_ROUTING: all networks that establish a *live* BGP session to the route's network, and they
+  //                                 are in regional routing mode
   //
   // Some fixed actions are bound to each destination as part of the semantics of the destination.
   // These semantics are written as rules
@@ -78,13 +78,13 @@ message DestinationAndGeneration {
   // - update *next_hop_tunnel*
   // - delete other next hops
   enum Destination {
-    VPC_Peers = 0;  // This works as a short cut for VPC_Peers_NoCustomRouting and VPC_Peers_CustomRouting.
-    // VPC_Peers is internally first translated to VPC_Peers_NoCustomRouting and VPC_Peers_CustomRouting, before any
-    // derivation process
-    VPC_Peers_NoCustomRouting = 1; // You can not specify two destinations with VPC_Peers and VPC_Peers_NoCustomRouting
-    VPC_Peers_CustomRouting = 2;    // You can not specify two destinations with VPC_Peers and VPC_Peers_CustomRouting
-    BGP_Peers_GlobalRouting = 3;
-    BGP_Peers_RegionalRouting = 4;
+    // VPC_PEERS works as a short cut for VPC_PEERS_NO_CUSTOM_ROUTING and VPC_PEERS_CUSTOM_ROUTING. It is first internally
+    // translated to VPC_PEERS_NO_CUSTOM_ROUTING and VPC_PEERS_CUSTOM_ROUTING, before any derivation process
+    VPC_PEERS = 0;
+    VPC_PEERS_NO_CUSTOM_ROUTING = 1;
+    VPC_PEERS_CUSTOM_ROUTING = 2;
+    BGP_PEERS_GLOBAL_ROUTING = 3;
+    BGP_PEERS_REGIONAL_ROUTING = 4;
   }
 
   required Destination destination = 6;
