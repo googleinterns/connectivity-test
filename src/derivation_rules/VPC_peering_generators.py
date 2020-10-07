@@ -16,24 +16,24 @@ from typing import Any
 import proto.cloud_network_model_pb2 as entities
 import proto.derivation_rules_pb2 as derivation_rules
 import proto.rules_pb2 as rules
-from src.utils.derivation_utils import clear_next_hops, getPeeringRouteType
+from src.utils.derivation_utils import clearNextHopsInRoute, getPeeringRouteType
 
 Destination = derivation_rules.DestinationAndGeneration.Destination
 DestinationContext = derivation_rules.DestinationAndGeneration.DestinationContext
 
 
-def VPCPeersGeneratorCommon(derived: rules.Route, context: DestinationContext,
+def VpcPeersGeneratorCommon(derived: rules.Route, context: DestinationContext,
                             model: entities.Model) -> rules.Route:
-    clear_next_hops(derived)
+    clearNextHopsInRoute(derived)
     derived.next_hop_peering = context.peer_info
     derived.route_type = getPeeringRouteType(derived.route_type)
     return derived
 
-def VPCPeersCustomRoutingGenerator(derived: rules.Route, context: DestinationContext,
+def VpcPeersCustomRoutingGenerator(derived: rules.Route, context: DestinationContext,
                                       model: entities.Model) -> rules.Route:
-    return VPCPeersGeneratorCommon(derived, context, model)
+    return VpcPeersGeneratorCommon(derived, context, model)
 
 
-def VPCPeersNoCustomRoutingGenerator(derived: rules.Route, context: DestinationContext,
+def VpcPeersNoCustomRoutingGenerator(derived: rules.Route, context: DestinationContext,
                                         model: entities.Model) -> rules.Route:
-    return VPCPeersGeneratorCommon(derived, context, model)
+    return VpcPeersGeneratorCommon(derived, context, model)

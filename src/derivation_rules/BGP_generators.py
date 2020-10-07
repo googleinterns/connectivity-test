@@ -16,15 +16,15 @@ from typing import Any
 import proto.cloud_network_model_pb2 as entities
 import proto.derivation_rules_pb2 as derivation_rules
 import proto.rules_pb2 as rules
-from src.utils.derivation_utils import find_network, list_bgp_peers, REGION_LIST, clear_next_hops
+from src.utils.derivation_utils import findNetwork, listBgpPeers, REGION_LIST, clearNextHopsInRoute
 
 Destination = derivation_rules.DestinationAndGeneration.Destination
 DestinationContext = derivation_rules.DestinationAndGeneration.DestinationContext
 
 
-def BGPPeersGeneratorCommon(derived: rules.Route, context: DestinationContext,
+def BgpPeersGeneratorCommon(derived: rules.Route, context: DestinationContext,
                                model: entities.Model) -> rules.Route:
-    clear_next_hops(derived)
+    clearNextHopsInRoute(derived)
     derived.next_hop_tunnel = context.peer_info
     # derived.region currently contains the original route's region
     derived.from_local = derived.region == context.region
@@ -33,11 +33,11 @@ def BGPPeersGeneratorCommon(derived: rules.Route, context: DestinationContext,
     return derived
 
 
-def BGPPeersGlobalRoutingGenerator(derived: rules.Route, context: DestinationContext,
+def BgpPeersGlobalRoutingGenerator(derived: rules.Route, context: DestinationContext,
                                       model: entities.Model) -> rules.Route:
-    return BGPPeersGeneratorCommon(derived, context, model)
+    return BgpPeersGeneratorCommon(derived, context, model)
 
 
-def BGPPeersRegionalRoutingGenerator(derived: rules.Route, context: DestinationContext,
+def BgpPeersRegionalRoutingGenerator(derived: rules.Route, context: DestinationContext,
                                         model: entities.Model) -> rules.Route:
-    return BGPPeersGeneratorCommon(derived, context, model)
+    return BgpPeersGeneratorCommon(derived, context, model)
