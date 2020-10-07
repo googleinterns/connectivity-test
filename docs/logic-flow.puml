@@ -1,0 +1,73 @@
+@startuml
+skinparam defaultFontName Linux Libertine O
+skinparam defaultFontSize 18
+
+start
+
+:==Initialization
+* generation rules **GR**
+* generators **G**;
+
+:==Input
+* the current network model **M**
+* a list of starting routes **R** for derivation.
+  (each route might be currently in **M** or not)
+;
+
+repeat
+:Get next starting route **r** from **R**;
+
+if (Find a rule **gr** in **GR** that matchs **r**) then (Found **gr**)
+  :Get destinations to install new routes,
+  stored in "Context" tuples:
+  <network, region, peer_info>;
+
+  repeat
+  :For each destination context **c**;
+
+  :Generate a new route **r'**,
+  copying from route **r**;
+
+  :Apply generator functions to **r'**:
+  * common generator
+      (for id, name, and network)
+  * destination-specific generator
+      (indexed by destination name)
+  * rule-name-destination generator
+      (indexed by name of **gr** and
+      destination name)
+  ;
+
+  if (Find an existing route matches **r'**) then (found as **r''** )
+    :Collect **r''**;
+    :Append **r''** to **R**;
+  else (Not found)
+    :Install **r'**;
+    :Collect **r'**;
+    :Append **r'** to **R**;
+  endif
+
+  repeat while (More destionations?)
+
+else (Not found)
+  :Continue;
+endif
+repeat while (More starting routes in **R**?)
+
+:Return all collected routes;
+    note
+    :Each collected route is either
+    * an existing route that derived
+    from one of the starting routes, or
+    * a new route derived from one of
+    the starting routes.
+    =======
+    If the input model **M** is stable, then
+    the returned routes are existing derived
+    routes for starting routes that exist in **M**,
+    and newly inserted routes for starting
+    routes that does not exist in **M**.
+    end note
+
+stop
+@enduml

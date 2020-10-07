@@ -1,0 +1,37 @@
+
+
+@startuml
+skinparam defaultFontName Linux Libertine O
+skinparam defaultFontSize 18
+
+start
+
+:==Input
+* a route **r**
+* a generation rule **gr**;
+
+repeat
+:Get next filter **f** from **gr**;
+
+if (Determine type of **f**) then (**f** is a route protobuf)
+  if (
+  For each present field <name, value> in **gr**,
+  __**r**.name==value__ always hold
+  ) then (Return //true//)
+  stop;
+  endif
+
+else (**f** is a lambda function)
+  if (
+  **f**(**r**) evaluates to //true//
+  ) then (Return //true//)
+  stop;
+  endif
+endif
+repeat while (More filters in **gr**?)
+
+:Return //false//;
+
+stop
+
+@enduml
