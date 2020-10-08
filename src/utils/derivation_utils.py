@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import random
+import re
 from collections import defaultdict
 from typing import Tuple, List, Set
 
@@ -57,6 +58,37 @@ PEERING_ROUTE_TYPES = [
     rules.Route.PEERING_DYNAMIC,
 ]
 
+WORDS_AND_DIGITS = re.compile(r'([a-zA-Z\d]+)')
+
+
+def wordToCamelCase(w: str) -> str:
+    """
+    Transform a word w to its CamelCase version.
+    This word may already be a CamelCase.
+
+    Cannot correctly handle two successive UPPERWORDS. Will output: Upperwords
+    """
+    res = ""
+    for i, c in enumerate(w):
+        if c.isupper() and (
+                i == 0 or not w[i - 1].isupper() or
+                i != len(w) - 1 and not w[i + 1].isupper()
+        ):
+            res += c
+        else:
+            res += c.lower()
+
+    return res
+
+
+def toCamelCase(s: str) -> str:
+    """
+    Transform a string into its corresponding CamelCase form.
+    All characters that are not letter or digit are deleted, e.g., spaces, underscores, and dashes.
+    """
+    l = [wordToCamelCase(word) for word in re.findall(WORDS_AND_DIGITS, s)]
+    return ''.join(l)
+
 
 def genId(num=18) -> str:
     return "".join(random.choices(DIGITS, k=num))
@@ -93,16 +125,20 @@ def getTrimmedRoutes(routes: List[rules.Route], keep_priority: bool = False) -> 
 
     result = set()
     for route in routes:
-        trimmed = rules.Route()
-        trimmed.CopyFrom(route)
-
-        trimmed.id = "id"
-        trimmed.name = "name"
-        trimmed.priority = route.priority if keep_priority else 0
+        trimmed = trimRoute(route, keep_priority)
 
         result.add(str(trimmed))
 
     return result
+
+
+def trimRoute(route, keep_priority = False):
+    trimmed = rules.Route()
+    trimmed.CopyFrom(route)
+    trimmed.id = "id"
+    trimmed.name = "name"
+    trimmed.priority = route.priority if keep_priority else 0
+    return trimmed
 
 
 def findNetwork(model: entities.Model, url: str):
@@ -113,6 +149,7 @@ def findNetwork(model: entities.Model, url: str):
 def findVpnTunnel(model: entities.Model, url: str):
     # return next((vpn_tunnel for vpn_tunnel in model.vpn_tunnels if vpn_tunnel.url == url), None)
     return findByTypeAndUrl(model, "vpn_tunnels", url)
+
 
 def findByTypeAndUrl(model: entities.Model, type: str, url: str):
     return next((element for element in model.getattr(type) if element.url == url), None)
