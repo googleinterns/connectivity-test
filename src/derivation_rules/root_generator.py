@@ -22,7 +22,7 @@ Destination = derivation_rules.DestinationAndGeneration.Destination
 DestinationContext = derivation_rules.DestinationAndGeneration.DestinationContext
 
 
-def __common_generator(derived: rules.Route, context: DestinationContext, model: entities.Model) -> rules.Route:
+def CommonGenerator(derived: rules.Route, context: DestinationContext, model: entities.Model) -> rules.Route:
     derived.id = genId()
     derived.name = "derived [%s]" % derived.id
     derived.instance_filter.network = context.network
