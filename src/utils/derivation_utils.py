@@ -132,7 +132,7 @@ def getTrimmedRoutes(routes: List[rules.Route], keep_priority: bool = False) -> 
     return result
 
 
-def trimRoute(route, keep_priority = False):
+def trimRoute(route, keep_priority=False):
     trimmed = rules.Route()
     trimmed.CopyFrom(route)
     trimmed.id = "id"
@@ -142,13 +142,15 @@ def trimRoute(route, keep_priority = False):
 
 
 def findNetwork(model: entities.Model, url: str):
-    # return next((network for network in model.networks if network.url == networkUrl), None)
     return findByTypeAndUrl(model, "networks", url)
 
 
 def findVpnTunnel(model: entities.Model, url: str):
-    # return next((vpn_tunnel for vpn_tunnel in model.vpn_tunnels if vpn_tunnel.url == url), None)
     return findByTypeAndUrl(model, "vpn_tunnels", url)
+
+
+def findCloudRouter(model: entities.Model, url: str):
+    return findByTypeAndUrl(model, "cloud_routers", url)
 
 
 def findByTypeAndUrl(model: entities.Model, type: str, url: str):
@@ -208,6 +210,10 @@ def listBgpPeers(model: entities.Model, networkUrl: str) -> List[Tuple[entities.
     BGP peer, the region where the BGP session is running, and the vpn tunnel in this network.
 
     If a BGP peer is beyond the input model, skip that BGP peer.
+    If the VPN tunnel connecting the BGP peer does not export subnet routes, skip this peer.
+
+    TODO this feature cannot be tested because the current test data do not contain the associated CloudRouter and
+    several fields like use_cloud_routers_advertisements in the vpn tunnel.
     """
     res = []
 
@@ -231,13 +237,23 @@ def listBgpPeers(model: entities.Model, networkUrl: str) -> List[Tuple[entities.
             peerTunnelsOfGw = [peerTunnelsOfGw[1], peerTunnelsOfGw[0]]
 
         # sort tunnels by interface #
-        tunnels = sorted(gwToTunnels[gw.url], key=lambda tunnel: tunnel.vpn_gateway_interface)
+        tunnelsOfGw = sorted(gwToTunnels[gw.url], key=lambda tunnel: tunnel.vpn_gateway_interface)
 
         # only consider DYNAMIC and ESTABLISHED BGP sessions.
-        for tunnel, peerTunnel in list(zip(tunnels, peerTunnelsOfGw)):
-            if tunnel.routing_type == entities.VPNTunnel.RoutingType.DYNAMIC and \
-                    tunnel.status == "ESTABLISHED" and peerTunnel.status == "ESTABLISHED":
-                peerTunnels.append(peerTunnel)
+        for tunnel, peerTunnel in list(zip(tunnelsOfGw, peerTunnelsOfGw)):
+            if tunnel.status != "ESTABLISHED" or peerTunnel.status != "ESTABLISHED": continue
+            if tunnel.routing_type != entities.VPNTunnel.RoutingType.DYNAMIC: continue
+
+            # TODO this should present when the proto and pb are updated.
+            # Before that, we just assume the vpn tunnel accepts subnet routes.
+            if tunnel.HashField("cloud_router"):
+                if not tunnel.advertise_subnet_routes:
+                    router = findCloudRouter(model, tunnel.cloud_router)
+                    willExport = tunnel.use_cloud_routers_advertisements and \
+                                 router.advertise_subnet_routes
+                    if not willExport: continue
+
+            peerTunnels.append(peerTunnel)
 
     # just traverse once
     for gateway in model.vpn_gateways:
