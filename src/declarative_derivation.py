@@ -20,12 +20,12 @@ from typing import List, Any, Dict, Callable, Union
 from google.protobuf import text_format
 
 import proto.cloud_network_model_pb2 as entities
-import proto.derivation_rules_pb2 as derivation_rules
+import proto.derivation_rules_pb2 as derivation
 import proto.rules_pb2 as rules
 from src.utils.derivation_utils import findNetwork, listBgpPeers, REGION_LIST, toCamelCase, getTrimmedRoutes, trimRoute
 
-Destination = derivation_rules.DestinationAndGeneration.Destination
-DestinationContext = derivation_rules.DestinationAndGeneration.DestinationContext
+Destination = derivation.DestinationAndGeneration.Destination
+DestinationContext = derivation.DestinationAndGeneration.DestinationContext
 
 """
 Upon a configuration change from the customer or automation systems, the data plane is updated according to a series
@@ -46,7 +46,7 @@ This derivation is considered valid based on equivalence instead of equality bec
 # collects the derivation rules from the configuration files.
 # the rule appear first in a single file has the highest priority
 # rule files are optionally ordered by the optional `src/derivation_declarations/rule_order.pb` file
-DerivationRules: List[derivation_rules.RouteDerivationRule] = []
+DerivationRules: List[derivation.RouteDerivationRule] = []
 
 # collects the route generators from the configuration files.
 # the keys are the function names, and two functions should never share a name.
@@ -61,7 +61,7 @@ def initializeDerivationRules():
     try:
         with open("src/derivation_declarations/rule_order.pb", "r") as f:
             fileContent = f.read()
-            order = list(text_format.Parse(fileContent, derivation_rules.RuleOrder()).file_names)
+            order = list(text_format.Parse(fileContent, derivation.RuleOrder()).file_names)
     except FileNotFoundError:
         order = []
 
@@ -83,7 +83,7 @@ def initializeDerivationRules():
 
             with open(os.path.join(dirName, fname), "r") as f:
                 fileContent = f.read()
-                rules = text_format.Parse(fileContent, derivation_rules.RuleSet())
+                rules = text_format.Parse(fileContent, derivation.RuleSet())
 
             DerivationRules += rules.rules
 
@@ -97,7 +97,7 @@ def initializeRouteGenerators():
     try:
         with open("src/derivation_declarations/enabled_generators.pb", "r") as f:
             fileContent = f.read()
-            filesToRead = list(text_format.Parse(fileContent, derivation_rules.EnabledGenerators()).file_names)
+            filesToRead = list(text_format.Parse(fileContent, derivation.EnabledGenerators()).file_names)
     except FileNotFoundError:
         filesToRead = []
 
@@ -127,12 +127,12 @@ def IdentifyRootRoutes(model: entities.Model) -> List[rules.Route]:
     """
     res = []
 
-    not_root = []  # not_root = set()  # Error due to "unhashable object"
+    notRoot = []  # notRoot = set()  # Error due to "unhashable object"
 
     for route in model.routes:
-        if route in not_root: continue
+        if route in notRoot: continue
         for derived in FindDerivedRoutes(model, route):
-            not_root.append(derived)
+            notRoot.append(derived)
 
     return res
 
@@ -164,7 +164,7 @@ def FindDerivedRoutes(model: entities.Model, start_route: rules.Route) -> List[r
     return Derive(model, [start_route], False)[0]
 
 
-def match(route: rules.Route, rule: derivation_rules.RouteDerivationRule) -> bool:
+def match(route: rules.Route, rule: derivation.RouteDerivationRule) -> bool:
     """
     Try to match a Route against a RouteDerivationRule. Return True if matched.
 
@@ -205,30 +205,30 @@ def match(route: rules.Route, rule: derivation_rules.RouteDerivationRule) -> boo
         if matched:
             return True
 
-    for lambda_filter in rule.lambda_filters:
+    for lambdaFilter in rule.lambda_filters:
         try:
-            fun = eval("lambda route: %s" % lambda_filter.replace("```", ""))
+            fun = eval("lambda route: %s" % lambdaFilter.replace("```", ""))
             if fun(route): return True
         except Exception as e:
-            print("Error occurred in lambda filter: %s\n%s" % (lambda_filter, e))
+            print("Error occurred in lambda filter: %s\n%s" % (lambdaFilter, e))
             pass
 
     return False
 
 
-def expand_vpc_peer_to_two_types(rule):
+def expandVpcPeer(rule):
     peersAsDst = next(filter(lambda d: d.destination == Destination.VPC_PEERS, rule.destinations), None)
     if peersAsDst is not None:
         rule.destinations.remove(peersAsDst)
 
         for dst in [Destination.VPC_PEERS_CUSTOM_ROUTING, Destination.VPC_PEERS_NO_CUSTOM_ROUTING]:
-            custom = derivation_rules.DestinationAndGeneration()
+            custom = derivation.DestinationAndGeneration()
             custom.CopyFrom(peersAsDst)
             custom.destination = dst
             rule.destinations.append(custom)
 
 
-def get_contexts(route: rules.Route, destination: Destination, model: entities.Model) -> List[DestinationContext]:
+def getContexts(route: rules.Route, destination: Destination, model: entities.Model) -> List[DestinationContext]:
     """
     Get the contexts to install new routes, based on the given destination.
     The destination is configurable in the rule files and has fixed builtin semantics -- the returned context type is
@@ -298,7 +298,7 @@ def Derive(model: entities.Model, start_routes: List[rules.Route],
         res = [[] for route in start_routes]
 
         for i, route in enumerate(start_routes):
-            rule: derivation_rules.RouteDerivationRule = None
+            rule: derivation.RouteDerivationRule = None
             for _rule in DerivationRules:
                 if match(route, _rule):
                     rule = _rule
@@ -308,12 +308,12 @@ def Derive(model: entities.Model, start_routes: List[rules.Route],
                 print("Route not covered by any rules: \n" + str(rule))
                 continue
 
-            expand_vpc_peer_to_two_types(rule)
+            expandVpcPeer(rule)
 
             # from this line, destination is never VPC_PEERS
             for destination in rule.destinations:
-                contexts = get_contexts(route, destination.destination, model)
-                dstName = derivation_rules.DestinationAndGeneration.Destination.values_by_number[
+                contexts = getContexts(route, destination.destination, model)
+                dstName = derivation.DestinationAndGeneration.Destination.values_by_number[
                     destination.destination]
                 fnames = ["COMMON", dstName, ]
 
@@ -343,10 +343,10 @@ def Derive(model: entities.Model, start_routes: List[rules.Route],
         routeIndex[str(trimmed)] = route  # use string because the protobuf itself is not hashable.
 
     for i in range(len(res)):
-        derived_routes = res[i]
+        derivedRoutes = res[i]
 
-        for j in range(len(derived_routes)):
-            route = derived_routes[j]
+        for j in range(len(derivedRoutes)):
+            route = derivedRoutes[j]
             trimmed = trimRoute(route)
             matched = routeIndex[str(trimmed)]
             if matched:

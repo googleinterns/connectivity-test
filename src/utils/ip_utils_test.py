@@ -24,13 +24,13 @@ class Test(TestCase):
         ipRange = rules.Ipv4Range(ip=int(addr), mask=24)
 
         for i in range(256):
-            self.assertTrue(InIPv4Range(int(addr + i), ipRange))
+            self.assertTrue(inIPv4Range(int(addr + i), ipRange))
 
         for i in range(256, 512):
-            self.assertFalse(InIPv4Range(int(addr + i), ipRange))
+            self.assertFalse(inIPv4Range(int(addr + i), ipRange))
 
     def test_ipv4range_to_str(self):
         addr: IPv4Address = ip_address("10.0.0.0")
         ipRange = rules.Ipv4Range(ip=int(addr), mask=24)
 
-        self.assertTrue(IPv4RangeToStr(ipRange) == "10.0.0.0/24")
+        self.assertTrue(ipv4RangeToStr(ipRange) == "10.0.0.0/24")

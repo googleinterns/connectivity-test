@@ -14,12 +14,12 @@
 from typing import Any
 
 import proto.cloud_network_model_pb2 as entities
-import proto.derivation_rules_pb2 as derivation_rules
+import proto.derivation_rules_pb2 as derivation
 import proto.rules_pb2 as rules
 from src.utils.derivation_utils import genId, genHex
 
-Destination = derivation_rules.DestinationAndGeneration.Destination
-DestinationContext = derivation_rules.DestinationAndGeneration.DestinationContext
+Destination = derivation.DestinationAndGeneration.Destination
+DestinationContext = derivation.DestinationAndGeneration.DestinationContext
 
 
 def CommonGenerator(derived: rules.Route, context: DestinationContext, model: entities.Model) -> rules.Route:

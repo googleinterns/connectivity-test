@@ -14,14 +14,14 @@
 from typing import Any
 
 import proto.cloud_network_model_pb2 as entities
-import proto.derivation_rules_pb2 as derivation_rules
+import proto.derivation_rules_pb2 as derivation
 import proto.rules_pb2 as rules
 from src.utils.derivation_utils import clearNextHopsInRoute, getPeeringRouteType, genHex
-from src.utils.ip_utils import IPv4RangeToStr
+from src.utils.ip_utils import ipv4RangeToStr
 from src.utils.url_parsers import ParseProjectFromUrl
 
-Destination = derivation_rules.DestinationAndGeneration.Destination
-DestinationContext = derivation_rules.DestinationAndGeneration.DestinationContext
+Destination = derivation.DestinationAndGeneration.Destination
+DestinationContext = derivation.DestinationAndGeneration.DestinationContext
 
 
 def VpcPeersGeneratorCommon(derived: rules.Route, context: DestinationContext,
@@ -36,7 +36,7 @@ def VpcPeersGeneratorCommon(derived: rules.Route, context: DestinationContext,
     else:
         # TODO here the project name should be the peer's. Make no difference after route trimming, though.
         derived.name = projectName + "::imported-custom-route-" + derived.id
-        derived.url = "imported-custom-route-" + IPv4RangeToStr(derived.dest_range)
+        derived.url = "imported-custom-route-" + ipv4RangeToStr(derived.dest_range)
         if originalRouteType == rules.Route.DYNAMIC:
             derived.next_hop_region=derived.region
             derived.region = context.region

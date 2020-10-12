@@ -16,7 +16,7 @@ import proto.rules_pb2 as rules
 import ipaddress
 
 
-def InIPv4Range(ip: int, ipRange: rules.Ipv4Range) -> bool:
+def inIPv4Range(ip: int, ipRange: rules.Ipv4Range) -> bool:
     """
     Determine if the IP address ip is in the IP range.
     """
@@ -28,5 +28,5 @@ def InIPv4Range(ip: int, ipRange: rules.Ipv4Range) -> bool:
     return ipRange.ip & mask == ip & mask
 
 
-def IPv4RangeToStr(ipRange: rules.Ipv4Range) -> str:
+def ipv4RangeToStr(ipRange: rules.Ipv4Range) -> str:
     return str(ipaddress.IPv4Address(ipRange.ip)) + "/%d" % ipRange.mask
