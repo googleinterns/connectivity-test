@@ -147,6 +147,10 @@ message RuleOrder {
   repeated string file_names = 1;
 }
 
+message EnabledGenerators {
+  repeated string file_names = 1;
+}
+
 message RuleSet {
   // Rules are matched in order. First wins
   repeated RouteDerivationRule rules = 10;
