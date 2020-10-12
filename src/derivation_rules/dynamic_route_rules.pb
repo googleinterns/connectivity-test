@@ -4,6 +4,24 @@
 rules {
   filters {
     route_type: DYNAMIC
+    from_local: true
+  }
+  destinations: {
+    destination: VPC_PEERS_CUSTOM_ROUTING
+
+    route_template {
+      route_type: PEERING_DYNAMIC
+    }
+  }
+
+  destinations: {
+    destination: OTHER_REGIONS_WHEN_GLOBAL_ROUTING
+  }
+}
+
+rules {
+  filters {
+    route_type: DYNAMIC
   }
   destinations: {
     destination: VPC_PEERS_CUSTOM_ROUTING
