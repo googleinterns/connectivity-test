@@ -15,15 +15,7 @@ rules {
   }
 
   destinations: {
-    destination: BGP_PEERS_GLOBAL_ROUTING
-
-    route_template {
-      route_type: DYNAMIC
-    }
-  }
-
-  destinations: {
-    destination: BGP_PEERS_REGIONAL_ROUTING
+    destination: BGP_PEERS
 
     route_template {
       route_type: DYNAMIC

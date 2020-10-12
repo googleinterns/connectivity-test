@@ -57,11 +57,11 @@ message DestinationAndGeneration {
   //   - VPC_PEERS_CUSTOM_ROUTING:   all active peering VPC networks that import custom routes from the route's network,
   //                                 and simultaneously, the route's network export custom routes to them
   //
-  //   - BGP_PEERS_GLOBAL_ROUTING:   all networks that establish a *live* BGP session to the route's network, and they
-  //                                 are in global routing mode
+  //   - BGP_PEERS:                   all networks that hold one or more *live* BGP session with the current network, and
+  //                                  the involved VPN tunnels in current network enable subnet advertising
   //
-  //   - BGP_PEERS_REGIONAL_ROUTING: all networks that establish a *live* BGP session to the route's network, and they
-  //                                 are in regional routing mode
+  //   - OTHER_REGIONS_WHEN_GLOBAL_ROUTING:   all regions other than the route's region, when the current network enables
+  //                                          global routing
   //
   // Some fixed actions are bound to each destination as part of the semantics of the destination.
   // These semantics are written as rules
@@ -84,9 +84,8 @@ message DestinationAndGeneration {
     VPC_PEERS = 0;
     VPC_PEERS_NO_CUSTOM_ROUTING = 1;
     VPC_PEERS_CUSTOM_ROUTING = 2;
-    BGP_PEERS_GLOBAL_ROUTING = 3;
-    BGP_PEERS_REGIONAL_ROUTING = 4;
-    OTHER_REGIONS_WHEN_GLOBAL_ROUTING = 5;
+    BGP_PEERS = 3;
+    OTHER_REGIONS_WHEN_GLOBAL_ROUTING = 4;
   }
 
   required Destination destination = 6;

@@ -23,7 +23,7 @@ DestinationContext = derivation_rules.DestinationAndGeneration.DestinationContex
 
 
 def BgpPeersGeneratorCommon(derived: rules.Route, context: DestinationContext,
-                               model: entities.Model) -> rules.Route:
+                            model: entities.Model) -> rules.Route:
     clearNextHopsInRoute(derived)
     derived.next_hop_tunnel = context.peer_info
     # derived.region currently contains the original route's region
@@ -33,11 +33,11 @@ def BgpPeersGeneratorCommon(derived: rules.Route, context: DestinationContext,
     return derived
 
 
-def BgpPeersGlobalRoutingGenerator(derived: rules.Route, context: DestinationContext,
-                                      model: entities.Model) -> rules.Route:
+def BgpPeersGenerator(derived: rules.Route, context: DestinationContext,
+                      model: entities.Model) -> rules.Route:
     return BgpPeersGeneratorCommon(derived, context, model)
 
 
-def BgpPeersRegionalRoutingGenerator(derived: rules.Route, context: DestinationContext,
-                                        model: entities.Model) -> rules.Route:
+def OtherRegionsWhenGlobalRouringGenerator(derived: rules.Route, context: DestinationContext,
+                                           model: entities.Model) -> rules.Route:
     return BgpPeersGeneratorCommon(derived, context, model)

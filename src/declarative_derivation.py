@@ -236,14 +236,14 @@ def get_contexts(route: rules.Route, destination: Destination, model: entities.M
 
      - VPC_PEERS:                   all active peering VPC networks
 
-     - VPC_PEERS_CUSTOM_ROUTING:     all active peering VPC networks that import custom routes from the route's network,
+     - VPC_PEERS_CUSTOM_ROUTING:    all active peering VPC networks that import custom routes from the route's network,
                                     and simultaneously, the route's network export custom routes to them
 
-     - BGP_PEERS_GLOBAL_ROUTING:     all networks that establish a *live* BGP session to the route's network, and they
-                                    are in global routing mode
+     - BGP_PEERS:                   all networks that hold one or more *live* BGP session with the current network, and
+                                    the involved VPN tunnels in current network enable subnet advertising
 
-     - BGP_PEERS_REGIONAL_ROUTING:   all networks that establish a *live* BGP session to the route's network, and they
-                                    are in regional routing mode
+     - OTHER_REGIONS_WHEN_GLOBAL_ROUTING:   all regions other than the route's region, when the current network enables
+                                            global routing
     """
     res: List[DestinationContext] = []
     network = findNetwork(model, route.instance_filter.network)
@@ -259,15 +259,13 @@ def get_contexts(route: rules.Route, destination: Destination, model: entities.M
 
             if destination == Destination.VPC_PEERS or peer.export_custom_routes and peerInPeer.import_custom_routes:
                 res.append(DestinationContext(network=peerNetwork.url, peer_info=peerInPeer.url))
-    elif destination in [Destination.BGP_PEERS_GLOBAL_ROUTING, Destination.BGP_PEERS_REGIONAL_ROUTING]:
+    elif destination == Destination.BGP_PEERS:
         for network, region, peer_info in listBgpPeers(model, network.url):
-
-            regions = [region]
-            if destination == Destination.BGP_PEERS_GLOBAL_ROUTING:
-                regions = REGION_LIST
-
-            for region in regions:
-                res.append(DestinationContext(network=network.url, region=region, peer_info=peer_info))
+            res.append(DestinationContext(network=network.url, region=region, peer_info=peer_info))
+    elif destination == Destination.OTHER_REGIONS_WHEN_GLOBAL_ROUTING:
+        if network.routing_mode == entities.Network.RoutingMode.GLOBAL:
+            for region in REGION_LIST - route.region:
+                res.append(DestinationContext(network=network.url, region=region))
     else:
         raise ValueError("The destination is not supported: ", destination)
 
