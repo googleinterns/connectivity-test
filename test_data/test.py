@@ -35,4 +35,12 @@ if __name__ == '__main__':
         copy.subnets[-1].id = 'Should show this'
         print(copy.subnets[-1].id)
 
+        subnet = entities.Subnet()
+        print(subnet)
+        subnet2 = entities.Subnet()
+        subnet2.CopyFrom(subnet)
+
+        print(subnet.__str__(), subnet2.__str__())
+        print("id" + subnet.id)
+
         print(copy.__str__() == topo.__str__())

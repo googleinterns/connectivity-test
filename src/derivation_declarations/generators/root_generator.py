@@ -26,4 +26,5 @@ def CommonGenerator(derived: rules.Route, context: DestinationContext, model: en
     derived.id = genId()
     derived.name = "derived [%s]" % derived.id
     derived.instance_filter.network = context.network
+    derived.ClearField("from_local")
     return derived

@@ -55,10 +55,14 @@ message DestinationAndGeneration {
   //   - VPC_PEERS:                  all active peering VPC networks
   //
   //   - VPC_PEERS_CUSTOM_ROUTING:   all active peering VPC networks that import custom routes from the route's network,
-  //                                 and simultaneously, the route's network export custom routes to them
+  //                                 and simultaneously, the route's network export custom routes to them.
   //
-  //   - BGP_PEERS:                   all networks that hold one or more *live* BGP session with the current network, and
-  //                                  the involved VPN tunnels in current network enable subnet advertising
+  //   - REGIONS_OF_VPC_PEERS_CUSTOM_ROUTING: all active peering VPC networks that import custom routes from the route's network,
+  //                                 and simultaneously, the route's network export custom routes to them. The route is
+  //                                 exported to all regions that the network has presence.
+  //
+  //   - BGP_PEERS:                  all networks that hold one or more *live* BGP session with the current network, and
+  //                                 the involved VPN tunnels in current network enable subnet advertising
   //
   //   - OTHER_REGIONS_WHEN_GLOBAL_ROUTING:   all regions other than the route's region, when the current network enables
   //                                          global routing
@@ -82,8 +86,8 @@ message DestinationAndGeneration {
     // VPC_PEERS works as a short cut for VPC_PEERS_NO_CUSTOM_ROUTING and VPC_PEERS_CUSTOM_ROUTING. It is first internally
     // translated to VPC_PEERS_NO_CUSTOM_ROUTING and VPC_PEERS_CUSTOM_ROUTING, before any derivation process
     VPC_PEERS = 0;
-    VPC_PEERS_NO_CUSTOM_ROUTING = 1;
     VPC_PEERS_CUSTOM_ROUTING = 2;
+    REGIONS_OF_VPC_PEERS_CUSTOM_ROUTING = 1;
     BGP_PEERS = 3;
     OTHER_REGIONS_WHEN_GLOBAL_ROUTING = 4;
   }

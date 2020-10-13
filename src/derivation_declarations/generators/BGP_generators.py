@@ -17,6 +17,7 @@ import proto.cloud_network_model_pb2 as entities
 import proto.derivation_rules_pb2 as derivation
 import proto.rules_pb2 as rules
 from src.utils.derivation_utils import findNetwork, listBgpPeers, REGION_LIST, clearNextHopsInRoute
+from src.utils.ip_utils import ipv4RangeToStr
 
 Destination = derivation.DestinationAndGeneration.Destination
 DestinationContext = derivation.DestinationAndGeneration.DestinationContext
@@ -30,6 +31,7 @@ def BgpPeersGeneratorCommon(derived: rules.Route, context: DestinationContext,
     derived.from_local = derived.region == context.region
     derived.region = context.region
     derived.route_type = rules.Route.DYNAMIC
+    derived.url = "dynamic-route-" + ipv4RangeToStr(derived.dest_range)
     return derived
 
 
@@ -38,6 +40,6 @@ def BgpPeersGenerator(derived: rules.Route, context: DestinationContext,
     return BgpPeersGeneratorCommon(derived, context, model)
 
 
-def OtherRegionsWhenGlobalRouringGenerator(derived: rules.Route, context: DestinationContext,
+def OtherRegionsWhenGlobalRoutingGenerator(derived: rules.Route, context: DestinationContext,
                                            model: entities.Model) -> rules.Route:
     return BgpPeersGeneratorCommon(derived, context, model)

@@ -23,7 +23,7 @@ import proto.cloud_network_model_pb2 as entities
 import proto.derivation_rules_pb2 as derivation
 import proto.rules_pb2 as rules
 from src.utils.derivation_utils import findNetwork, listBgpPeers, REGION_LIST, toCamelCase, getTrimmedRoutes, trimRoute, \
-    findVpnTunnel
+    findVpnTunnel, findNetworkForVpnTunnel, findVpnGateway
 
 Destination = derivation.DestinationAndGeneration.Destination
 DestinationContext = derivation.DestinationAndGeneration.DestinationContext
@@ -73,7 +73,7 @@ def initializeDerivationRules():
             return len(order)
 
     for dirName, subdirList, fileList in os.walk("src/derivation_declarations/rules"):
-        print('Loading derivation rules in directory: %s. ' % dirName)
+        print('Loading derivation rules in directory: %s ' % dirName)
 
         # sort the rule files such that the mentioned files appear in the specified order and before the unmentioned files
         sortedList = sorted(fileList, key=index)
@@ -103,12 +103,12 @@ def initializeRouteGenerators():
         filesToRead = []
 
     for dirName, subdirList, fileList in os.walk("src/derivation_declarations/generators"):
-        print('Loading route generators in directory: %s. ' % dirName)
+        print('Loading route generators in directory: %s ' % dirName)
 
         for fname in set(fileList).intersection(filesToRead):
             if not fname.endswith(".py"): continue
             print('Parsing the route generator in file: %s' % fname)
-            module = importlib.import_module("src.derivation_declarations." + fname[:-3])
+            module = importlib.import_module("src.derivation_declarations.generators." + fname[:-3])
 
             for member in getmembers(module):
                 if isfunction(member[1]):
@@ -217,18 +217,6 @@ def match(route: rules.Route, rule: derivation.RouteDerivationRule) -> bool:
     return False
 
 
-def expandVpcPeer(rule):
-    peersAsDst = next(filter(lambda d: d.destination == Destination.VPC_PEERS, rule.destinations), None)
-    if peersAsDst is not None:
-        rule.destinations.remove(peersAsDst)
-
-        for dst in [Destination.VPC_PEERS_CUSTOM_ROUTING, Destination.VPC_PEERS_NO_CUSTOM_ROUTING]:
-            custom = derivation.DestinationAndGeneration()
-            custom.CopyFrom(peersAsDst)
-            custom.destination = dst
-            rule.destinations.append(custom)
-
-
 def getContexts(route: rules.Route, destination: Destination, model: entities.Model) -> List[DestinationContext]:
     """
     Get the contexts to install new routes, based on the given destination.
@@ -238,7 +226,11 @@ def getContexts(route: rules.Route, destination: Destination, model: entities.Mo
      - VPC_PEERS:                   all active peering VPC networks
 
      - VPC_PEERS_CUSTOM_ROUTING:    all active peering VPC networks that import custom routes from the route's network,
-                                    and simultaneously, the route's network export custom routes to them
+                                    and simultaneously, the route's network export custom routes to them.
+
+     - REGIONS_OF_VPC_PEERS_CUSTOM_ROUTING: all active peering VPC networks that import custom routes from the route's network,
+                                    and simultaneously, the route's network export custom routes to them. The route is
+                                    exported to all regions that the network has presence.
 
      - BGP_PEERS:                   all networks that hold one or more *live* BGP session with the current network, and
                                     the involved VPN tunnels in current network enable subnet advertising
@@ -251,22 +243,34 @@ def getContexts(route: rules.Route, destination: Destination, model: entities.Mo
 
     if network is None: return []
 
-    if destination in [Destination.VPC_PEERS, Destination.VPC_PEERS_CUSTOM_ROUTING]:
+    if destination in [Destination.VPC_PEERS,
+                       Destination.VPC_PEERS_CUSTOM_ROUTING,
+                       Destination.REGIONS_OF_VPC_PEERS_CUSTOM_ROUTING]:
         for peer in network.peers:
             peerNetwork = findNetwork(model, peer.peer_network)
             peerInPeer = next((peer for peer in peerNetwork.peers if peer.peer_network == network.url), None)
 
             if entities.NetworkPeer.NetworkPeeringState.INACTIVE in [peer.state, peerInPeer.state]: continue
 
-            if destination == Destination.VPC_PEERS or peer.export_custom_routes and peerInPeer.import_custom_routes:
-                res.append(DestinationContext(network=peerNetwork.url, peer_info=peerInPeer.url))
+            if destination == Destination.VPC_PEERS:
+                res.append(DestinationContext(network=peerNetwork.url, peer_info=peerInPeer.name))
+            else:
+                if not (peer.export_custom_routes and peerInPeer.import_custom_routes): continue
+
+                if destination == Destination.VPC_PEERS_CUSTOM_ROUTING:
+                    res.append(DestinationContext(network=peerNetwork.url, peer_info=peerInPeer.name))
+                else:
+                    for region in peerNetwork.regions:
+                        res.append(
+                            DestinationContext(network=peerNetwork.url, region=region, peer_info=peerInPeer.name))
     elif destination == Destination.BGP_PEERS:
         for network, region, peer_info in listBgpPeers(model, network.url):
             res.append(DestinationContext(network=network.url, region=region, peer_info=peer_info))
     elif destination == Destination.OTHER_REGIONS_WHEN_GLOBAL_ROUTING:
         if network.routing_mode == entities.Network.RoutingMode.GLOBAL:
-            for region in REGION_LIST - route.region:
-                res.append(DestinationContext(network=network.url, region=region))
+            for region in REGION_LIST:
+                if region == route.region: continue
+                res.append(DestinationContext(network=network.url, region=region, peer_info=route.next_hop_tunnel))
     else:
         raise ValueError("The destination is not supported: ", destination)
 
@@ -275,7 +279,7 @@ def getContexts(route: rules.Route, destination: Destination, model: entities.Mo
 
 def deriveRoute(model: entities.Model, route: rules.Route, context: DestinationContext, destination: Destination,
                 extraRule: str = None) -> rules.Route:
-    dstName = Destination.values_by_number[destination.destination]
+    dstName = Destination.DESCRIPTOR.values_by_number[destination].name
     functionNames = ["COMMON", dstName, ]
 
     derived = rules.Route()
@@ -323,19 +327,24 @@ def Derive(model: entities.Model, start_routes: List[rules.Route],
                 print("Route not covered by any rules: \n" + str(rule))
                 continue
 
-            expandVpcPeer(rule)
+            print("========Derive Route==========\n%s" % str(route))
+            print("--------Matched Rule----------\n%s" % str(rule))
 
             # from this line, destination is never VPC_PEERS
             for destination in rule.destinations:
+                print("------------Destination-------------\n%s" % (str(destination)))
                 contexts = getContexts(route, destination.destination, model)
 
+                print("------------Contexts-------------\n%s" % (str(contexts)))
                 for context in contexts:
-                    derived = deriveRoute(model, route, context, destination, rule.name)
+                    print("------------Context-------------\n%s" % (str(context)))
+                    derived = deriveRoute(model, route, context, destination.destination, rule.name)
+                    print("---------Derived Route----------\n%s" % (str(derived)))
 
                     model.routes.append(derived)
                     res[i].append(derived)
 
-                    returned = dfs(derived)
+                    returned = dfs([derived])
                     res[i] += returned[0]
         return res
 
@@ -364,23 +373,26 @@ def Derive(model: entities.Model, start_routes: List[rules.Route],
 def deriveAfterLearnedBgpAdvertisements(_model: entities.Model, vpnTunnel: Union[entities.VPNTunnel, str],
                                         prefixes: List[rules.Ipv4Range]) -> entities.Model:
     """
-    Some prefixes are announced from the other end of the vpnTunnel. Derive routes based on that.
-    Return a new model after derivation. The original model is intact.
+    Some prefixes are advertised from the other end of the vpnTunnel. Derive routes based on that.
     """
     model: entities.Model = entities.Model()
     model.CopyFrom(_model)
-    
+
     if isinstance(vpnTunnel, str):
         vpnTunnel = findVpnTunnel(model, vpnTunnel)
+
+    gw = findVpnGateway(model, vpnTunnel.vpn_gateway)
+    context = DestinationContext(network=gw.network, region=vpnTunnel.region, peer_info=vpnTunnel.url)
 
     routes = []
 
     for prefix in prefixes:
-        route = rules.Route(dest_range=prefix)
-        route = deriveRoute(model, route, DestinationContext(region=vpnTunnel.region, peer_info=vpnTunnel.url),
-                            Destination.BGP_PEERS)
+        # reuse the existing route construction functions to build a correct route
+        route = rules.Route(dest_range=prefix, region=vpnTunnel.region)
+        route = deriveRoute(model, route, context, Destination.BGP_PEERS)
 
         routes.append(route)
+        model.routes.append(route)
 
     Derive(model, routes)
 

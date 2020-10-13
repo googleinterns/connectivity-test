@@ -26,6 +26,8 @@ DestinationContext = derivation.DestinationAndGeneration.DestinationContext
 
 def VpcPeersGeneratorCommon(derived: rules.Route, context: DestinationContext,
                             model: entities.Model) -> rules.Route:
+    clearNextHopsInRoute(derived)
+
     originalRouteType = derived.route_type
     projectName = ParseProjectFromUrl(derived.url)
     hexId = genHex(16)
@@ -41,7 +43,6 @@ def VpcPeersGeneratorCommon(derived: rules.Route, context: DestinationContext,
             derived.next_hop_region=derived.region
             derived.region = context.region
 
-    clearNextHopsInRoute(derived)
     derived.next_hop_peering = context.peer_info
     derived.route_type = getPeeringRouteType(originalRouteType)
     return derived
@@ -52,6 +53,6 @@ def VpcPeersCustomRoutingGenerator(derived: rules.Route, context: DestinationCon
     return VpcPeersGeneratorCommon(derived, context, model)
 
 
-def VpcPeersNoCustomRoutingGenerator(derived: rules.Route, context: DestinationContext,
+def RegionsOfVpcPeersCustomRoutingGenerator(derived: rules.Route, context: DestinationContext,
                                      model: entities.Model) -> rules.Route:
     return VpcPeersGeneratorCommon(derived, context, model)

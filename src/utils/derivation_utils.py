@@ -141,20 +141,24 @@ def trimRoute(route, keep_priority=False):
     return trimmed
 
 
-def findNetwork(model: entities.Model, url: str):
+def findNetwork(model: entities.Model, url: str) -> entities.Network:
     return findByTypeAndUrl(model, "networks", url)
 
 
-def findVpnTunnel(model: entities.Model, url: str):
+def findVpnTunnel(model: entities.Model, url: str) -> entities.VPNTunnel:
     return findByTypeAndUrl(model, "vpn_tunnels", url)
 
 
-def findCloudRouter(model: entities.Model, url: str):
+def findCloudRouter(model: entities.Model, url: str) -> entities.CloudRouter:
     return findByTypeAndUrl(model, "cloud_routers", url)
 
 
+def findVpnGateway(model: entities.Model, url: str) -> entities.VPNGateway:
+    return findByTypeAndUrl(model, "vpn_gateways", url)
+
+
 def findByTypeAndUrl(model: entities.Model, type: str, url: str):
-    return next((element for element in model.getattr(type) if element.url == url), None)
+    return next((element for element in getattr(model, type) if element.url == url), None)
 
 
 def clearNextHopsInRoute(derived):
@@ -203,6 +207,11 @@ def clearNextHopsInRoute(derived):
 #
 #     return res
 #
+
+def findNetworkForVpnTunnel(model: entities.Model, vpnTunnel: entities.VPNTunnel) -> entities.Network:
+    gateway = findVpnGateway(model, vpnTunnel.vpn_gateway)
+    return findNetwork(model, gateway.network)
+
 
 def listBgpPeers(model: entities.Model, networkUrl: str) -> List[Tuple[entities.Network, str, str]]:
     """

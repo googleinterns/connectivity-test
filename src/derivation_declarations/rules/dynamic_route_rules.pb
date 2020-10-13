@@ -7,7 +7,7 @@ rules {
     from_local: true
   }
   destinations: {
-    destination: VPC_PEERS_CUSTOM_ROUTING
+    destination: REGIONS_OF_VPC_PEERS_CUSTOM_ROUTING
 
     route_template {
       route_type: PEERING_DYNAMIC
@@ -22,12 +22,6 @@ rules {
 rules {
   filters {
     route_type: DYNAMIC
-  }
-  destinations: {
-    destination: VPC_PEERS_CUSTOM_ROUTING
-
-    route_template {
-      route_type: PEERING_DYNAMIC
-    }
+    from_local: false
   }
 }
