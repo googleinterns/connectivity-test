@@ -341,7 +341,6 @@ def Derive(model: entities.Model, start_routes: List[rules.Route],
                     derived = deriveRoute(model, route, context, destination.destination, rule.name)
                     print("---------Derived Route----------\n%s" % (str(derived)))
 
-                    model.routes.append(derived)
                     res[i].append(derived)
 
                     returned = dfs([derived])
@@ -395,5 +394,36 @@ def deriveAfterLearnedBgpAdvertisements(_model: entities.Model, vpnTunnel: Union
         model.routes.append(route)
 
     Derive(model, routes)
+
+    return model
+
+
+def deriveAfterBgpWithdrawals(_model: entities.Model, vpnTunnel: entities.VPNTunnel,
+                              prefixes: List[rules.Ipv4Range]) -> entities.Model:
+    """
+    When the other side withdrawals some prefixes, delete the derived routes on this side.
+    The prefixes should be existing, and no prefix aggregation is done inside this function.
+    """
+    model: entities.Model = entities.Model()
+    model.CopyFrom(_model)
+
+    if isinstance(vpnTunnel, str):
+        vpnTunnel = findVpnTunnel(model, vpnTunnel)
+
+    routes = []
+    for route in model.routes:
+        if route.next_hop_tunnel == vpnTunnel.url and route.dest_range in prefixes and route.from_local:
+            routes.append(route)
+
+    print("===========Root Routes============")
+    print(routes)
+
+    for route in routes:
+        derivedRoutes = FindDerivedRoutes(model, route)
+        print("===========Deleting Routes============")
+        derivedRoutes.append(route)
+        print(derivedRoutes)
+        for r in derivedRoutes:
+            model.routes.remove(r)
 
     return model

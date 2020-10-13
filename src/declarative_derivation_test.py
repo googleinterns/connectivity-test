@@ -40,15 +40,15 @@ class TestDataPlane(unittest.TestCase):
 
         before = getTrimmedRoutes(before.routes)
 
-        after = getTrimmedRoutes(after.routes) - before
-        expected = getTrimmedRoutes(expected.routes) - before
+        after = getTrimmedRoutes(after.routes)
+        expected = getTrimmedRoutes(expected.routes)
 
         print("=======after=========")
         print(after)
         print("=======expected=========")
         print(expected)
 
-        self.assertEqual(after - before, expected - before)
+        self.assertEqual(after, expected)
 
     def test_deriveAfterLearnedBgpAdvertisements(self):
         self.test(
@@ -60,6 +60,15 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case1/test_project_sq2_09222020_1_clear.pb",
             "test_data/case1/test_project_sq2_09222020_2_clear.pb")
 
+    def test_deriveAfterBgpWithdrawals(self):
+        self.test(
+            lambda model: derivationFunctions.deriveAfterBgpWithdrawals(
+                model,
+                "projects/test-project-sq2/regions/us-west1/vpnTunnels/t4e",
+                [rules.Ipv4Range(ip=int(ipaddress.IPv4Address("10.5.0.0")), mask=24)]
+            ),
+            "test_data/case1/test_project_sq2_09222020_2_clear.pb",
+            "test_data/case1/test_project_sq2_09222020_3.pb")
 
 
 if __name__ == '__main__':
