@@ -37,7 +37,9 @@ def BgpPeersGeneratorCommon(derived: rules.Route, context: DestinationContext,
 
 def BgpPeersGenerator(derived: rules.Route, context: DestinationContext,
                       model: entities.Model) -> rules.Route:
-    return BgpPeersGeneratorCommon(derived, context, model)
+    derived = BgpPeersGeneratorCommon(derived, context, model)
+    derived.from_local = True
+    return derived
 
 
 def OtherRegionsWhenGlobalRoutingGenerator(derived: rules.Route, context: DestinationContext,

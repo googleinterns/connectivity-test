@@ -22,8 +22,10 @@ from google.protobuf import text_format
 import proto.cloud_network_model_pb2 as entities
 import proto.derivation_rules_pb2 as derivation
 import proto.rules_pb2 as rules
+from src.derivation_declarations.generators.root_generator import CommonGenerator
 from src.utils.derivation_utils import findNetwork, listBgpPeers, REGION_LIST, toCamelCase, getTrimmedRoutes, trimRoute, \
-    findVpnTunnel, findNetworkForVpnTunnel, findVpnGateway
+    findVpnTunnel, findNetworkForVpnTunnel, findVpnGateway, genId, genHex, findSubnet
+from src.utils.url_parsers import ParseProjectFromUrl
 
 Destination = derivation.DestinationAndGeneration.Destination
 DestinationContext = derivation.DestinationAndGeneration.DestinationContext
@@ -313,7 +315,11 @@ def Derive(model: entities.Model, start_routes: List[rules.Route],
 
     if not start_routes: start_routes = IdentifyRootRoutes(model)
 
-    def dfs(start_routes: List[rules.Route]) -> List[List[rules.Route]]:
+    def dfs(start_routes: List[rules.Route], depth: int = 0) -> List[List[rules.Route]]:
+        def printWithDepth(s: str):
+            for line in s.split("\n"):
+                print(("| " * depth) + line)
+
         res = [[] for route in start_routes]
 
         for i, route in enumerate(start_routes):
@@ -324,26 +330,26 @@ def Derive(model: entities.Model, start_routes: List[rules.Route],
                     break
 
             if rule is None:
-                print("Route not covered by any rules: \n" + str(rule))
+                printWithDepth("Route not covered by any rules: \n" + str(rule))
                 continue
 
-            print("========Derive Route==========\n%s" % str(route))
-            print("--------Matched Rule----------\n%s" % str(rule))
+            printWithDepth("========Derive Route==========\n%s" % str(route))
+            printWithDepth("--------Matched Rule----------\n%s" % str(rule))
 
             # from this line, destination is never VPC_PEERS
             for destination in rule.destinations:
-                print("------------Destination-------------\n%s" % (str(destination)))
+                printWithDepth("------------Destination-------------\n%s" % (str(destination)))
                 contexts = getContexts(route, destination.destination, model)
 
-                print("------------Contexts-------------\n%s" % (str(contexts)))
+                printWithDepth("------------Contexts-------------\n%s" % (str(contexts)))
                 for context in contexts:
-                    print("------------Context-------------\n%s" % (str(context)))
+                    printWithDepth("------------Context-------------\n%s" % (str(context)))
                     derived = deriveRoute(model, route, context, destination.destination, rule.name)
-                    print("---------Derived Route----------\n%s" % (str(derived)))
+                    printWithDepth("---------Derived Route----------\n%s" % (str(derived)))
 
                     res[i].append(derived)
 
-                    returned = dfs([derived])
+                    returned = dfs([derived], depth + 1)
                     res[i] += returned[0]
         return res
 
@@ -398,7 +404,7 @@ def deriveAfterLearnedBgpAdvertisements(_model: entities.Model, vpnTunnel: Union
     return model
 
 
-def deriveAfterBgpWithdrawals(_model: entities.Model, vpnTunnel: entities.VPNTunnel,
+def deriveAfterBgpWithdrawals(_model: entities.Model, vpnTunnel: Union[entities.VPNTunnel, str],
                               prefixes: List[rules.Ipv4Range]) -> entities.Model:
     """
     When the other side withdrawals some prefixes, delete the derived routes on this side.
@@ -413,6 +419,82 @@ def deriveAfterBgpWithdrawals(_model: entities.Model, vpnTunnel: entities.VPNTun
     routes = []
     for route in model.routes:
         if route.next_hop_tunnel == vpnTunnel.url and route.dest_range in prefixes and route.from_local:
+            routes.append(route)
+
+    print("===========Root Routes============")
+    print(routes)
+
+    for route in routes:
+        derivedRoutes = FindDerivedRoutes(model, route)
+        print("===========Deleting Routes============")
+        derivedRoutes.append(route)
+        print(derivedRoutes)
+        for r in derivedRoutes:
+            model.routes.remove(r)
+
+    return model
+
+
+def deriveAfterSubnetAdded(_model: entities.Model, subnet: entities.Subnet) -> entities.Model:
+    """
+    When a subnet is added, the associated subnet route is created and propagated
+    """
+    model: entities.Model = entities.Model()
+    model.CopyFrom(_model)
+
+    network = findNetwork(model, subnet.network)
+    projectName = ParseProjectFromUrl(subnet.url)
+
+    model.subnets.append(subnet)
+    if subnet.region not in network.regions:
+        network.regions.append(subnet.region)
+
+    routes = []
+
+    prefixes = [subnet.ipv4_range] + list(subnet.secondary_ranges)
+    for prefix in prefixes:
+        hexId = genHex(16)
+        # reuse the existing route construction functions to build a correct route
+        route = rules.Route(
+            id=genId(),
+            name=projectName + "::default-route-" + hexId,
+            priority=0,
+            dest_range=prefix,
+            next_hop_network=network.url,
+            instance_filter=rules.InstanceFilter(network=network.url),
+            url="projects/%s/global/routes/default-route-%s" % (projectName, hexId),
+            route_type=rules.Route.RouteType.SUBNET
+        )
+
+        routes.append(route)
+        model.routes.append(route)
+
+    Derive(model, routes)
+
+    return model
+
+
+def deriveAfterSubnetRemoved(_model: entities.Model, subnet: Union[entities.Subnet, str]) -> entities.Model:
+    """
+    the pre-requisite is that no instance is under this subnet.
+    remove subnet routes in this network and peers, and remove a region, if this subnet is the last in the region
+    """
+    model: entities.Model = entities.Model()
+    model.CopyFrom(_model)
+
+    if isinstance(subnet, str):
+        subnet = findSubnet(model, subnet)
+
+    network = findNetwork(model, subnet.network)
+    prefixes = [subnet.ipv4_range] + list(subnet.secondary_ranges)
+
+    model.subnets.remove(subnet)
+    if not next((s for s in model.subnets if s.network == subnet.network and s.region == subnet.region), None):
+        network.regions.remove(subnet.region)
+
+    routes = []
+    for route in model.routes:
+        if route.route_type == rules.Route.RouteType.SUBNET and route.dest_range in prefixes:
             routes.append(route)
 
     print("===========Root Routes============")

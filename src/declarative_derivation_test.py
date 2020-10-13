@@ -70,6 +70,43 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case1/test_project_sq2_09222020_2_clear.pb",
             "test_data/case1/test_project_sq2_09222020_3.pb")
 
+    def test_deriveAfterSubnetAdded(self):
+        subnetStr = """
+          id: "1955644932992580395"
+          name: "test-project-sq2::added-subnet"
+          network: "projects/test-project-sq2/global/networks/n2"
+          ipv4_range {
+            ip: 168689664
+            mask: 24
+          }
+          region: "us-west2"
+          secondary_ranges {
+            ip: 168755200
+            mask: 24
+          }
+          private_google_access: false
+          url: "projects/test-project-sq2/regions/us-west2/subnetworks/added-subnet"
+        """
+
+        subnet: entities.Subnet = text_format.Parse(subnetStr, entities.Subnet())
+
+        self.test(
+            lambda model: derivationFunctions.deriveAfterSubnetAdded(
+                model,
+                subnet
+            ),
+            "test_data/case5/test_project_sq2_10062020_1.pb",
+            "test_data/case5/test_project_sq2_10062020_2.pb")
+
+    def test_deriveAfterSubnetRemoved(self):
+        self.test(
+            lambda model: derivationFunctions.deriveAfterSubnetRemoved(
+                model,
+                "projects/test-project-sq2/regions/us-west2/subnetworks/added-subnet"
+            ),
+            "test_data/case5/test_project_sq2_10062020_2.pb",
+            "test_data/case5/test_project_sq2_10062020_3.pb")
+
 
 if __name__ == '__main__':
     unittest.main()

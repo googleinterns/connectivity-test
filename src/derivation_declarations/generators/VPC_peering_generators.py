@@ -48,6 +48,10 @@ def VpcPeersGeneratorCommon(derived: rules.Route, context: DestinationContext,
     return derived
 
 
+def VpcPeersGenerator(derived: rules.Route, context: DestinationContext,
+                                   model: entities.Model) -> rules.Route:
+    return VpcPeersGeneratorCommon(derived, context, model)
+
 def VpcPeersCustomRoutingGenerator(derived: rules.Route, context: DestinationContext,
                                    model: entities.Model) -> rules.Route:
     return VpcPeersGeneratorCommon(derived, context, model)

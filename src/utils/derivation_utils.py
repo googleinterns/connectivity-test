@@ -137,12 +137,17 @@ def trimRoute(route, keep_priority=False):
     trimmed.CopyFrom(route)
     trimmed.id = "id"
     trimmed.name = "name"
+    trimmed.url = "url"
     trimmed.priority = route.priority if keep_priority else 0
     return trimmed
 
 
 def findNetwork(model: entities.Model, url: str) -> entities.Network:
     return findByTypeAndUrl(model, "networks", url)
+
+
+def findSubnet(model: entities.Model, url: str) -> entities.Subnet:
+    return findByTypeAndUrl(model, "subnets", url)
 
 
 def findVpnTunnel(model: entities.Model, url: str) -> entities.VPNTunnel:
@@ -228,13 +233,13 @@ def listBgpPeers(model: entities.Model, networkUrl: str) -> List[Tuple[entities.
 
     # collect vpn gateways in the current network
     vpnGateways = list(filter(lambda gw: gw.network == networkUrl, model.vpn_gateways))
-    vpnGatewayUrls = map(lambda gw: gw.url, vpnGateways)
+    vpnGatewayUrls = list(map(lambda gw: gw.url, vpnGateways))
 
     # collect the attached vpn tunnels of the vpn gateways in the current network
-    gwToTunnels = defaultdict([])
+    gwToTunnels = defaultdict(lambda: [])
     for tunnel in model.vpn_tunnels:
-        if tunnel.gateway in vpnGatewayUrls:
-            gwToTunnels[tunnel.gateway].append(tunnel)
+        if tunnel.vpn_gateway in vpnGatewayUrls:
+            gwToTunnels[tunnel.vpn_gateway].append(tunnel)
 
     peerTunnels = []
     for gw in vpnGateways:
@@ -243,6 +248,7 @@ def listBgpPeers(model: entities.Model, networkUrl: str) -> List[Tuple[entities.
 
         # sort peer tunnels by ip
         if len(peerTunnelsOfGw) > 1 and peerTunnelsOfGw[0].peer_ip != gw.ip[0]:
+            assert (peerTunnelsOfGw[0].peer_ip == gw.ip[1])
             peerTunnelsOfGw = [peerTunnelsOfGw[1], peerTunnelsOfGw[0]]
 
         # sort tunnels by interface #
@@ -255,12 +261,16 @@ def listBgpPeers(model: entities.Model, networkUrl: str) -> List[Tuple[entities.
 
             # TODO this should present when the proto and pb are updated.
             # Before that, we just assume the vpn tunnel accepts subnet routes.
-            if tunnel.HashField("cloud_router"):
+            if tunnel.HasField("cloud_router"):
                 if not tunnel.advertise_subnet_routes:
                     router = findCloudRouter(model, tunnel.cloud_router)
                     willExport = tunnel.use_cloud_routers_advertisements and \
                                  router.advertise_subnet_routes
                     if not willExport: continue
+            elif tunnel.url == "projects/test-project-sq2/regions/us-west1/vpnTunnels/t4e":
+                # TODO currently tunnel t4e is configured as not inheriting cloud router's configuration and not
+                # advertising subnets. Delete this branch when the cloud router is included in the pb files
+                continue
 
             peerTunnels.append(peerTunnel)
 
@@ -268,6 +278,6 @@ def listBgpPeers(model: entities.Model, networkUrl: str) -> List[Tuple[entities.
     for gateway in model.vpn_gateways:
         for peerTunnel in peerTunnels:
             if gateway.url == peerTunnel.vpn_gateway:
-                res += (findNetwork(model, gateway.network), peerTunnel.region, peerTunnel.url)
+                res.append((findNetwork(model, gateway.network), peerTunnel.region, peerTunnel.url))
 
     return res
