@@ -622,3 +622,4 @@ def deriveAfterStaticRouteRemoved(_model: entities.Model, route: rules.Route) ->
     model.routes.remove(route)
 
     return model
+

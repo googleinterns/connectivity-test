@@ -150,6 +150,31 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case8.0/test_project_sq2_10062020_1.pb",
             "test_data/case8.0/test_project_sq2_10062020_2.pb")
 
+        self.test(
+            lambda model: derivationFunctions.deriveAfterStaticRouteAdded(
+                model,
+                text_format.Parse("""
+                  id: "7345242974329025248"
+                  name: "test-project-sq2::added-route"
+                  priority: 1000
+                  dest_range {
+                    ip: 168165376
+                    mask: 24
+                  }
+                  next_hop_ip: 167903235
+                  instance_filter {
+                    network: "projects/test-project-sq2/global/networks/n2"
+                    attributes {
+                      tag: "test-tag"
+                    }
+                  }
+                  url: "projects/test-project-sq2/global/routes/added-route"
+                  route_type: STATIC
+                  """, rules.Route())
+            ),
+            "test_data/case8.2/test_project_sq2_10062020_1.pb",
+            "test_data/case8.2/test_project_sq2_10062020_2.pb")
+
     def test_deriveAfterStaticRouteRemoved(self):
         self.test(
             lambda model: derivationFunctions.deriveAfterStaticRouteRemoved(
