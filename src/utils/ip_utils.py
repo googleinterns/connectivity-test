@@ -30,3 +30,13 @@ def inIPv4Range(ip: int, ipRange: rules.Ipv4Range) -> bool:
 
 def ipv4RangeToStr(ipRange: rules.Ipv4Range) -> str:
     return str(ipaddress.IPv4Address(ipRange.ip)) + "/%d" % ipRange.mask
+
+def ipv4StrToRange(ipRange: str) -> rules.Ipv4Range:
+    (ipStr, maskStr) = ipRange.split("/")
+
+    ip = ipaddress.IPv4Address(ipStr)
+
+    return rules.Ipv4Range(
+        ip=int(ip),
+        mask=int(maskStr)
+    )

@@ -107,6 +107,26 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case5/test_project_sq2_10062020_2.pb",
             "test_data/case5/test_project_sq2_10062020_3.pb")
 
+    def test_deriveAfterIpRangesAdded(self):
+        self.test(
+            lambda model: derivationFunctions.deriveAfterIpRangesAdded(
+                model,
+                "projects/test-project-sq2/regions/us-west1/subnetworks/sn2",
+                ["10.5.0.0/24"]
+            ),
+            "test_data/case6/test_project_sq2_10022020_1.pb",
+            "test_data/case6/test_project_sq2_10022020_2.pb")
+
+    def test_deriveAfterIpRangeEnlarged(self):
+        self.test(
+            lambda model: derivationFunctions.deriveAfterIpRangeEnlarged(
+                model,
+                "projects/test-project-sq2/regions/us-west1/subnetworks/sn2",
+                {"10.5.0.0/24": "10.5.0.0/20"}
+            ),
+            "test_data/case7/test_project_sq2_10052020_1.pb",
+            "test_data/case7/test_project_sq2_10052020_2.pb")
+
 
 if __name__ == '__main__':
     unittest.main()

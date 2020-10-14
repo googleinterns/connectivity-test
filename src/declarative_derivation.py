@@ -25,6 +25,7 @@ import proto.rules_pb2 as rules
 from src.derivation_declarations.generators.root_generator import CommonGenerator
 from src.utils.derivation_utils import findNetwork, listBgpPeers, REGION_LIST, toCamelCase, getTrimmedRoutes, trimRoute, \
     findVpnTunnel, findNetworkForVpnTunnel, findVpnGateway, genId, genHex, findSubnet
+from src.utils.ip_utils import ipv4StrToRange
 from src.utils.url_parsers import ParseProjectFromUrl
 
 Destination = derivation.DestinationAndGeneration.Destination
@@ -507,5 +508,89 @@ def deriveAfterSubnetRemoved(_model: entities.Model, subnet: Union[entities.Subn
         print(derivedRoutes)
         for r in derivedRoutes:
             model.routes.remove(r)
+
+    return model
+
+
+def deriveAfterIpRangesAdded(_model: entities.Model, subnet: Union[entities.Subnet, str],
+                             ipRanges: List[Union[rules.Ipv4Range, str]]) -> entities.Model:
+    """
+    Adding some secondary ipRanges to a subnet requires the range update in the subnet, and
+    installing subnet derivation_rules to the network and peers.
+    """
+    model: entities.Model = entities.Model()
+    model.CopyFrom(_model)
+
+    if isinstance(subnet, str):
+        subnet = findSubnet(model, subnet)
+
+    network = findNetwork(model, subnet.network)
+    projectName = ParseProjectFromUrl(subnet.url)
+
+    routes = []
+
+    for prefix in ipRanges:
+        if isinstance(prefix, str):
+            prefix = ipv4StrToRange(prefix)
+
+        subnet.secondary_ranges.append(prefix)
+
+        hexId = genHex(16)
+        # reuse the existing route construction functions to build a correct route
+        route = rules.Route(
+            id=genId(),
+            name=projectName + "::default-route-" + hexId,
+            priority=0,
+            dest_range=prefix,
+            next_hop_network=network.url,
+            instance_filter=rules.InstanceFilter(network=network.url),
+            url="projects/%s/global/routes/default-route-%s" % (projectName, hexId),
+            route_type=rules.Route.RouteType.SUBNET
+        )
+
+        routes.append(route)
+        model.routes.append(route)
+
+    Derive(model, routes)
+
+    return model
+
+
+def deriveAfterIpRangeEnlarged(_model: entities.Model, subnet: Union[entities.Subnet, str],
+                               ipRanges: Dict[Union[rules.Ipv4Range, str], Union[rules.Ipv4Range, str]]
+                               ) -> entities.Model:
+    """
+    If ranges of a subnet is enlarged, then the corresponding routes are changed accordingly
+    """
+    model: entities.Model = entities.Model()
+    model.CopyFrom(_model)
+
+    if isinstance(subnet, str):
+        subnet = findSubnet(model, subnet)
+
+    for range, enlargedRange in ipRanges.items():
+        if isinstance(range, str):
+            range = ipv4StrToRange(range)
+        if isinstance(enlargedRange, str):
+            enlargedRange = ipv4StrToRange(enlargedRange)
+
+        if subnet.ipv4_range == range:
+            subnet.ipv4_range = enlargedRange
+        else:  # this branch is not possible in the web interface. But we support this
+            subnet.secondary_ranges.remove(range)
+            subnet.secondary_ranges.append(enlargedRange)
+
+        for route in model.routes:
+            if route.route_type == rules.Route.RouteType.SUBNET and route.dest_range == range:
+                derivedRoutes = FindDerivedRoutes(model, route)
+
+                print("===========Enlarging Routes============")
+                derivedRoutes.append(route)
+                print(derivedRoutes)
+                for r in derivedRoutes:
+                    r.dest_range.ip = enlargedRange.ip
+                    r.dest_range.mask = enlargedRange.mask
+
+                break
 
     return model
