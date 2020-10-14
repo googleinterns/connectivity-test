@@ -15,7 +15,7 @@ import importlib
 import os
 from collections import defaultdict
 from inspect import getmembers, isfunction
-from typing import List, Any, Dict, Callable, Union
+from typing import List, Any, Dict, Callable, Union, Tuple
 
 from google.protobuf import text_format
 
@@ -557,7 +557,7 @@ def deriveAfterIpRangesAdded(_model: entities.Model, subnet: Union[entities.Subn
 
 
 def deriveAfterIpRangeEnlarged(_model: entities.Model, subnet: Union[entities.Subnet, str],
-                               ipRanges: Dict[Union[rules.Ipv4Range, str], Union[rules.Ipv4Range, str]]
+                               ipRanges: List[Tuple[Union[rules.Ipv4Range, str], Union[rules.Ipv4Range, str]]]
                                ) -> entities.Model:
     """
     If ranges of a subnet is enlarged, then the corresponding routes are changed accordingly
@@ -568,7 +568,7 @@ def deriveAfterIpRangeEnlarged(_model: entities.Model, subnet: Union[entities.Su
     if isinstance(subnet, str):
         subnet = findSubnet(model, subnet)
 
-    for range, enlargedRange in ipRanges.items():
+    for range, enlargedRange in ipRanges:
         if isinstance(range, str):
             range = ipv4StrToRange(range)
         if isinstance(enlargedRange, str):
@@ -623,3 +623,15 @@ def deriveAfterStaticRouteRemoved(_model: entities.Model, route: rules.Route) ->
 
     return model
 
+
+def deriveAfterStaticRouteUpdated(model: entities.Model,
+                                  routes: List[Tuple[rules.Route, rules.Route]]) -> entities.Model:
+    """
+    Update the static route and propagate to peers
+    """
+
+    for route, newRoute in routes:
+        model = deriveAfterStaticRouteRemoved(model, route)
+        model = deriveAfterStaticRouteAdded(model, newRoute)
+
+    return model

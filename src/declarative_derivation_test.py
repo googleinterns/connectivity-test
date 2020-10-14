@@ -122,7 +122,7 @@ class TestDataPlane(unittest.TestCase):
             lambda model: derivationFunctions.deriveAfterIpRangeEnlarged(
                 model,
                 "projects/test-project-sq2/regions/us-west1/subnetworks/sn2",
-                {"10.5.0.0/24": "10.5.0.0/20"}
+                [("10.5.0.0/24", "10.5.0.0/20")]
             ),
             "test_data/case7/test_project_sq2_10052020_1.pb",
             "test_data/case7/test_project_sq2_10052020_2.pb")
@@ -197,6 +197,56 @@ class TestDataPlane(unittest.TestCase):
             ),
             "test_data/case8.0/test_project_sq2_10062020_2.pb",
             "test_data/case8.0/test_project_sq2_10062020_3.pb")
+
+    def test_deriveAfterStaticRouteUpdated(self):
+        route = text_format.Parse("""
+                          id: "6567481593092089925"
+                          name: "test-project-sq2::added-route"
+                          priority: 1000
+                          dest_range {
+                            ip: 168165376
+                            mask: 24
+                          }
+                          next_hop_ip: 167903235
+                          instance_filter {
+                            network: "projects/test-project-sq2/global/networks/n2"
+                          }
+                          url: "projects/test-project-sq2/global/routes/added-route"
+                          route_type: STATIC
+                  """, rules.Route())
+        newRoute = text_format.Parse("""
+                          id: "7724679716894648665"
+                          name: "test-project-sq2::added-route"
+                          priority: 1000
+                          dest_range {
+                            ip: 168165376
+                            mask: 24
+                          }
+                          next_hop_ip: 167903235
+                          instance_filter {
+                            network: "projects/test-project-sq2/global/networks/n2"
+                            attributes {
+                              tag: "test-tag"
+                            }
+                          }
+                          url: "projects/test-project-sq2/global/routes/added-route"
+                          route_type: STATIC
+                                    """, rules.Route())
+        self.test(
+            lambda model: derivationFunctions.deriveAfterStaticRouteUpdated(
+                model,
+                [(route, newRoute)]
+            ),
+            "test_data/case9.1/test_project_sq2_10132020_1.pb",
+            "test_data/case9.1/test_project_sq2_10132020_2.pb")
+
+        self.test(
+            lambda model: derivationFunctions.deriveAfterStaticRouteUpdated(
+                model,
+                [(newRoute, route)]
+            ),
+            "test_data/case9.1/test_project_sq2_10132020_2.pb",
+            "test_data/case9.1/test_project_sq2_10132020_3.pb")
 
 
 if __name__ == '__main__':
