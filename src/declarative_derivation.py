@@ -609,3 +609,16 @@ def deriveAfterStaticRouteAdded(_model: entities.Model, route: rules.Route) -> e
 
     return model
 
+
+def deriveAfterStaticRouteRemoved(_model: entities.Model, route: rules.Route) -> entities.Model:
+    """
+    Remove the static route and propagate to peers
+    """
+    model: entities.Model = entities.Model()
+    model.CopyFrom(_model)
+
+    for r in FindDerivedRoutes(model, route):
+        model.routes.remove(r)
+    model.routes.remove(route)
+
+    return model
