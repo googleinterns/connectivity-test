@@ -594,3 +594,18 @@ def deriveAfterIpRangeEnlarged(_model: entities.Model, subnet: Union[entities.Su
                 break
 
     return model
+
+
+def deriveAfterStaticRouteAdded(_model: entities.Model, route: rules.Route) -> entities.Model:
+    """
+    Add the static route and propagate to peers
+    """
+    model: entities.Model = entities.Model()
+    model.CopyFrom(_model)
+
+    model.routes.append(route)
+
+    Derive(model, [route])
+
+    return model
+
