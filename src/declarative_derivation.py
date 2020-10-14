@@ -24,7 +24,7 @@ import proto.derivation_rules_pb2 as derivation
 import proto.rules_pb2 as rules
 from src.derivation_declarations.generators.root_generator import CommonGenerator
 from src.utils.derivation_utils import findNetwork, listBgpPeers, REGION_LIST, toCamelCase, getTrimmedRoutes, trimRoute, \
-    findVpnTunnel, findNetworkForVpnTunnel, findVpnGateway, genId, genHex, findSubnet
+    findVpnTunnel, findNetworkForVpnTunnel, findVpnGateway, genId, genHex, findSubnet, findPeeringVpnTunnel
 from src.utils.ip_utils import ipv4StrToRange
 from src.utils.url_parsers import ParseProjectFromUrl
 
@@ -633,5 +633,32 @@ def deriveAfterStaticRouteUpdated(model: entities.Model,
     for route, newRoute in routes:
         model = deriveAfterStaticRouteRemoved(model, route)
         model = deriveAfterStaticRouteAdded(model, newRoute)
+
+    return model
+
+
+def deriveAfterVpnTunnelRemoval(_model: entities.Model, vpnTunnel: Union[entities.VPNTunnel, str]) -> entities.Model:
+    """
+    Will remove all learned routes and custom prefixes on this side, and propagate the removal
+    """
+    model: entities.Model = entities.Model()
+    model.CopyFrom(_model)
+
+    if isinstance(vpnTunnel, str):
+        vpnTunnel = findVpnTunnel(model, vpnTunnel)
+
+    peerTunnel = findPeeringVpnTunnel(model, vpnTunnel)
+
+    routes = list(filter(lambda r: r.next_hop_tunnel in [vpnTunnel.url, peerTunnel.url] and r.from_local, model.routes))
+
+    for route in routes:
+        derivedRoutes = FindDerivedRoutes(model, route)
+        print("===========Deleting Routes============")
+        derivedRoutes.append(route)
+        print(derivedRoutes)
+        for r in derivedRoutes:
+            model.routes.remove(r)
+
+    model.vpn_tunnels.remove(vpnTunnel)
 
     return model

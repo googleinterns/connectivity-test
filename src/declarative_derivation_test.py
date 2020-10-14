@@ -248,6 +248,23 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case9.1/test_project_sq2_10132020_2.pb",
             "test_data/case9.1/test_project_sq2_10132020_3.pb")
 
+    def test_deriveAfterVpnTunnelRemoval(self):
+        self.test(
+            lambda model: derivationFunctions.deriveAfterVpnTunnelRemoval(
+                model,
+                "projects/test-project-sq2/regions/us-west1/vpnTunnels/t4e"
+            ),
+            "test_data/case2/test_project_sq2_10132020_1.pb",
+            "test_data/case2/test_project_sq2_10132020_2.pb")
+
+        self.test(
+            lambda model: derivationFunctions.deriveAfterVpnTunnelRemoval(
+                model,
+                "projects/test-project-sq2/regions/us-west1/vpnTunnels/t4e-2"
+            ),
+            "test_data/case2/test_project_sq2_10132020_2.pb",
+            "test_data/case2/test_project_sq2_10132020_3.pb")
+
 
 if __name__ == '__main__':
     unittest.main()

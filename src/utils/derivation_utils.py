@@ -14,7 +14,7 @@
 import random
 import re
 from collections import defaultdict
-from typing import Tuple, List, Set
+from typing import Tuple, List, Set, Optional, Union
 
 import proto.cloud_network_model_pb2 as entities
 import proto.rules_pb2 as rules
@@ -175,43 +175,23 @@ def clearNextHopsInRoute(derived):
     derived.ClearField("next_hop_vpn_gateway")
 
 
-#
-# def listVpnTunnelPairs(model: entities.Model, networkUrl: str) -> \
-#         List[Tuple[entities.VPNTunnel, entities.VPNTunnel]]:
-#     """
-#     Return a list of pairs of VPN tunnels in the model. For each pair, the first element is a VPN tunnel in the given
-#     network, and the second is the peering VPN tunnel.
-#
-#     If the peer of a VPN tunnel is not in model, the returned list does not contain this pair.
-#     """
-#     res = []
-#
-#     # collect vpn gateways in the current network
-#     vpnGateways = list(filter(lambda gw: gw.network == networkUrl, model.vpn_gateways))
-#     vpnGatewayUrls = map(lambda gw: gw.url, vpnGateways)
-#
-#     # collect the attached vpn tunnels of the vpn gateways in the current network
-#     gwToTunnels = defaultdict([])
-#     for tunnel in model.vpn_tunnels:
-#         if tunnel.gateway in vpnGatewayUrls:
-#             gwToTunnels[tunnel.gateway].append(tunnel)
-#
-#     for gw in vpnGateways:
-#         # find peer vpn tunnels from ips in gateway
-#         peerTunnels = list(filter(lambda tunnel: tunnel.peer_ip in gw.ip, model.vpn_tunnels))
-#
-#         # sort peer tunnels by ip
-#         if len(peerTunnels) > 1 and peerTunnels[0].peer_ip != gw.ip[0]:
-#             peerTunnels = [peerTunnels[1], peerTunnels[0]]
-#
-#         # sort tunnels by interface #
-#         tunnels = sorted(gwToTunnels[gw.url], key=lambda tunnel: tunnel.vpn_gateway_interface)
-#
-#         # then the tunnels and peer tunnels are matched, and in order
-#         res += list(zip(tunnels, peerTunnels))
-#
-#     return res
-#
+def findPeeringVpnTunnel(model: entities.Model, vpnTunnel: Union[entities.VPNTunnel, str]) -> Optional[entities.VPNTunnel]:
+    """
+    Return the peering VPN tunnel of the current VPN tunnel.
+    If the peering tunnel is beyond the input model, return None.
+    """
+    if isinstance(vpnTunnel, str):
+        vpnTunnel = findVpnTunnel(model, vpnTunnel)
+
+    gw = findVpnGateway(model, vpnTunnel.vpn_gateway)
+
+    # find peer vpn tunnels from ips in gateway
+    peerTunnel = next((tunnel for tunnel in model.vpn_tunnels if tunnel.peer_ip == gw.ip[vpnTunnel.vpn_gateway_interface]), None)
+
+    if vpnTunnel.status != "ESTABLISHED" or peerTunnel and peerTunnel.status != "ESTABLISHED": return None
+
+    return peerTunnel
+
 
 def findNetworkForVpnTunnel(model: entities.Model, vpnTunnel: entities.VPNTunnel) -> entities.Network:
     gateway = findVpnGateway(model, vpnTunnel.vpn_gateway)
