@@ -662,3 +662,27 @@ def deriveAfterVpnTunnelRemoval(_model: entities.Model, vpnTunnel: Union[entitie
     model.vpn_tunnels.remove(vpnTunnel)
 
     return model
+
+
+def deriveAfterBgpMedChanged(_model: entities.Model, vpnTunnel: Union[entities.VPNTunnel, str],
+                             MED_diff: int) -> entities.Model:
+    """
+    Will change the priority of all influenced routes, and propagate
+    """
+    model: entities.Model = entities.Model()
+    model.CopyFrom(_model)
+
+    if isinstance(vpnTunnel, str):
+        vpnTunnel = findVpnTunnel(model, vpnTunnel)
+
+    routes = list(filter(lambda r: r.next_hop_tunnel == vpnTunnel.url and r.from_local, model.routes))
+
+    for route in routes:
+        derivedRoutes = FindDerivedRoutes(model, route)
+        print("===========Deleting Routes============")
+        derivedRoutes.append(route)
+        print(derivedRoutes)
+        for r in derivedRoutes:
+            r.priority += MED_diff
+
+    return model

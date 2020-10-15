@@ -27,7 +27,8 @@ from src.utils.derivation_utils import getTrimmedRoutes
 
 
 class TestDataPlane(unittest.TestCase):
-    def test(self, fun: Callable[[entities.Model], entities.Model], pbBefore: str, pbAfter: str):
+    def test(self, fun: Callable[[entities.Model], entities.Model], pbBefore: str, pbAfter: str,
+             keepPriority: bool = False):
         with open(pbBefore, "r") as f:
             before = f.read()
             before: entities.Model = text_format.Parse(before, entities.Model())
@@ -38,10 +39,10 @@ class TestDataPlane(unittest.TestCase):
             expected = f.read()
             expected: entities.Model = text_format.Parse(expected, entities.Model())
 
-        before = getTrimmedRoutes(before.routes)
+        before = getTrimmedRoutes(before.routes, keepPriority)
 
-        after = getTrimmedRoutes(after.routes)
-        expected = getTrimmedRoutes(expected.routes)
+        after = getTrimmedRoutes(after.routes, keepPriority)
+        expected = getTrimmedRoutes(expected.routes, keepPriority)
 
         print("=======after=========")
         print(after)
@@ -264,6 +265,27 @@ class TestDataPlane(unittest.TestCase):
             ),
             "test_data/case2/test_project_sq2_10132020_2.pb",
             "test_data/case2/test_project_sq2_10132020_3.pb")
+
+    def test_deriveAfterBgpMedChanged(self):
+        self.test(
+            lambda model: derivationFunctions.deriveAfterBgpMedChanged(
+                model,
+                "projects/test-project-sq2/regions/us-west1/vpnTunnels/te4",
+                50
+            ),
+            "test_data/case4/test_project_sq2_10062020_1.pb",
+            "test_data/case4/test_project_sq2_10062020_2.pb",
+            keepPriority=True)
+
+        self.test(
+            lambda model: derivationFunctions.deriveAfterBgpMedChanged(
+                model,
+                "projects/test-project-sq2/regions/us-west1/vpnTunnels/te4",
+                -50
+            ),
+            "test_data/case4/test_project_sq2_10062020_2.pb",
+            "test_data/case4/test_project_sq2_10062020_3.pb",
+            keepPriority=True)
 
 
 if __name__ == '__main__':
