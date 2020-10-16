@@ -61,6 +61,10 @@ RouteGenerators: Dict[str, Callable[[rules.Route, Any, entities.Model], rules.Ro
 
 
 def initializeDerivationRules():
+    """
+    Load the derivation rule files and parse the rules.
+    The order of rules are organized by the optional **rule_order.pb** file.
+    """
     global DerivationRules
     try:
         with open("src/derivation_declarations/rule_order.pb", "r") as f:
@@ -96,6 +100,11 @@ initializeDerivationRules()
 
 
 def initializeRouteGenerators():
+    """
+    Load the generation function files and parse the generators.
+    The optional **enabled_generators.pb** file provides a way to explicitly designate the desired files to parse
+    instead of all files.
+    """
     global RouteGenerators
 
     try:
@@ -108,7 +117,12 @@ def initializeRouteGenerators():
     for dirName, subdirList, fileList in os.walk("src/derivation_declarations/generators"):
         print('Loading route generators in directory: %s ' % dirName)
 
-        for fname in set(fileList).intersection(filesToRead):
+        if filesToRead:
+            filesToRead = set(fileList).intersection(filesToRead)
+        else:
+            filesToRead = fileList
+
+        for fname in filesToRead:
             if not fname.endswith(".py"): continue
             print('Parsing the route generator in file: %s' % fname)
             module = importlib.import_module("src.derivation_declarations.generators." + fname[:-3])
@@ -282,6 +296,12 @@ def getContexts(route: rules.Route, destination: Destination, model: entities.Mo
 
 def deriveRoute(model: entities.Model, route: rules.Route, context: DestinationContext, destination: Destination,
                 extraRule: str = None) -> rules.Route:
+    """
+    A single derivation, based on the current model, the route generating the derived route, the context and destination
+    for the generation.
+    If the matching generation rule has a name, then the specified generation rule with name extraRule is further loaded
+    and applied after all other rules.
+    """
     dstName = Destination.DESCRIPTOR.values_by_number[destination].name
     functionNames = ["COMMON", dstName, ]
 
