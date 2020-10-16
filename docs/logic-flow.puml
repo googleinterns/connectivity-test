@@ -1,6 +1,6 @@
 @startuml
 skinparam defaultFontName Linux Libertine O
-skinparam defaultFontSize 18
+skinparam defaultFontSize 20
 
 start
 
@@ -56,17 +56,24 @@ repeat while (More starting routes in **R**?)
 
 :Return all collected routes;
     note
-    :Each collected route is either
-    * an existing route that derived
-    from one of the starting routes, or
-    * a new route derived from one of
-    the starting routes.
+    Each collected route is derived from
+    one of the starting routes, and is either
+    1. an existing route in **M**, or
+    2. a new route currently not in **M**
     =======
-    If the input model **M** is stable, then
-    the returned routes are existing derived
-    routes for starting routes that exist in **M**,
-    and newly inserted routes for starting
-    routes that does not exist in **M**.
+    **Use case 1**: finding existing derived
+    routes of a route in **M**. All returned
+    routes are type 1.
+
+    **Use case 2**: before inserting a route,
+    find out what routes will be derived
+    from this one. All returned routes are
+    type 2.
+
+    **Use case 3**: some derived routes are
+    just randomly missing. Complete the
+    partial model **M**. The returned routes
+    may include both types.
     end note
 
 stop
