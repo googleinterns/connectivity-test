@@ -27,8 +27,8 @@ from src.utils.derivation_utils import getTrimmedRoutes
 
 
 class TestDataPlane(unittest.TestCase):
-    def test(self, fun: Callable[[entities.Model], entities.Model], pbBefore: str, pbAfter: str,
-             keepPriority: bool = False):
+    def common(self, fun: Callable[[entities.Model], entities.Model], pbBefore: str, pbAfter: str,
+               keepPriority: bool = False):
         with open(pbBefore, "r") as f:
             before = f.read()
             before: entities.Model = text_format.Parse(before, entities.Model())
@@ -52,7 +52,7 @@ class TestDataPlane(unittest.TestCase):
         self.assertEqual(after, expected)
 
     def test_deriveAfterLearnedBgpAdvertisements(self):
-        self.test(
+        self.common(
             lambda model: derivationFunctions.deriveAfterLearnedBgpAdvertisements(
                 model,
                 "projects/test-project-sq2/regions/us-west1/vpnTunnels/t4e",
@@ -62,7 +62,7 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case1/test_project_sq2_09222020_2_clear.pb")
 
     def test_deriveAfterBgpWithdrawals(self):
-        self.test(
+        self.common(
             lambda model: derivationFunctions.deriveAfterBgpWithdrawals(
                 model,
                 "projects/test-project-sq2/regions/us-west1/vpnTunnels/t4e",
@@ -91,7 +91,7 @@ class TestDataPlane(unittest.TestCase):
 
         subnet: entities.Subnet = text_format.Parse(subnetStr, entities.Subnet())
 
-        self.test(
+        self.common(
             lambda model: derivationFunctions.deriveAfterSubnetAdded(
                 model,
                 subnet
@@ -100,7 +100,7 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case5/test_project_sq2_10062020_2.pb")
 
     def test_deriveAfterSubnetRemoved(self):
-        self.test(
+        self.common(
             lambda model: derivationFunctions.deriveAfterSubnetRemoved(
                 model,
                 "projects/test-project-sq2/regions/us-west2/subnetworks/added-subnet"
@@ -109,7 +109,7 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case5/test_project_sq2_10062020_3.pb")
 
     def test_deriveAfterIpRangesAdded(self):
-        self.test(
+        self.common(
             lambda model: derivationFunctions.deriveAfterIpRangesAdded(
                 model,
                 "projects/test-project-sq2/regions/us-west1/subnetworks/sn2",
@@ -119,7 +119,7 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case6/test_project_sq2_10022020_2.pb")
 
     def test_deriveAfterIpRangeEnlarged(self):
-        self.test(
+        self.common(
             lambda model: derivationFunctions.deriveAfterIpRangeEnlarged(
                 model,
                 "projects/test-project-sq2/regions/us-west1/subnetworks/sn2",
@@ -129,7 +129,7 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case7/test_project_sq2_10052020_2.pb")
 
     def test_deriveAfterStaticRouteAdded(self):
-        self.test(
+        self.common(
             lambda model: derivationFunctions.deriveAfterStaticRouteAdded(
                 model,
                 text_format.Parse("""
@@ -151,7 +151,7 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case8.0/test_project_sq2_10062020_1.pb",
             "test_data/case8.0/test_project_sq2_10062020_2.pb")
 
-        self.test(
+        self.common(
             lambda model: derivationFunctions.deriveAfterStaticRouteAdded(
                 model,
                 text_format.Parse("""
@@ -177,7 +177,7 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case8.2/test_project_sq2_10062020_2.pb")
 
     def test_deriveAfterStaticRouteRemoved(self):
-        self.test(
+        self.common(
             lambda model: derivationFunctions.deriveAfterStaticRouteRemoved(
                 model,
                 text_format.Parse("""
@@ -233,7 +233,7 @@ class TestDataPlane(unittest.TestCase):
                           url: "projects/test-project-sq2/global/routes/added-route"
                           route_type: STATIC
                                     """, rules.Route())
-        self.test(
+        self.common(
             lambda model: derivationFunctions.deriveAfterStaticRouteUpdated(
                 model,
                 [(route, newRoute)]
@@ -241,7 +241,7 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case9.1/test_project_sq2_10132020_1.pb",
             "test_data/case9.1/test_project_sq2_10132020_2.pb")
 
-        self.test(
+        self.common(
             lambda model: derivationFunctions.deriveAfterStaticRouteUpdated(
                 model,
                 [(newRoute, route)]
@@ -250,7 +250,7 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case9.1/test_project_sq2_10132020_3.pb")
 
     def test_deriveAfterVpnTunnelRemoval(self):
-        self.test(
+        self.common(
             lambda model: derivationFunctions.deriveAfterVpnTunnelRemoval(
                 model,
                 "projects/test-project-sq2/regions/us-west1/vpnTunnels/t4e"
@@ -258,7 +258,7 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case2/test_project_sq2_10132020_1.pb",
             "test_data/case2/test_project_sq2_10132020_2.pb")
 
-        self.test(
+        self.common(
             lambda model: derivationFunctions.deriveAfterVpnTunnelRemoval(
                 model,
                 "projects/test-project-sq2/regions/us-west1/vpnTunnels/t4e-2"
@@ -267,7 +267,7 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case2/test_project_sq2_10132020_3.pb")
 
     def test_deriveAfterBgpMedChanged(self):
-        self.test(
+        self.common(
             lambda model: derivationFunctions.deriveAfterBgpMedChanged(
                 model,
                 "projects/test-project-sq2/regions/us-west1/vpnTunnels/te4",
@@ -277,7 +277,7 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case4/test_project_sq2_10062020_2.pb",
             keepPriority=True)
 
-        self.test(
+        self.common(
             lambda model: derivationFunctions.deriveAfterBgpMedChanged(
                 model,
                 "projects/test-project-sq2/regions/us-west1/vpnTunnels/te4",
