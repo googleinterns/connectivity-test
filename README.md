@@ -258,6 +258,8 @@ pip3 install protobuf
 git clone https://github.com/googleinterns/connectivity-test
 cd connectivity-test
 
+protoc --proto_path=./ --python_out=./ proto/*.proto
+
 python3 -m unittest src.declarative_derivation_test.TestDataPlane
 ```
 
