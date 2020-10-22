@@ -251,10 +251,12 @@ Many unexpected routing behaviors are caused by some undesired route. The deriva
 The user may expect a route to be inserted based on the current configuration, but in GCP, the route is not inserted. This derivation engine can serve finding the cause by providing logs for the reference of the user. 
 
 ## Run demo
-The demos are also the test cases. To run it, prepare a Linux machine, and execute in shell:
+The demos are also the test cases. To run it on a Ubuntu machine, please execute the following commands in shell:
 
 ```bash
-pip3 install protobuf
+sudo pip3 install protobuf
+sudo apt install protobuf-compiler
+
 git clone https://github.com/googleinterns/connectivity-test
 cd connectivity-test
 
