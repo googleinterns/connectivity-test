@@ -157,7 +157,7 @@ def IdentifyRootRoutes(model: entities.Model) -> List[rules.Route]:
 
 def FindRootRoute(model: entities.Model, derived: rules.Route) -> rules.Route:
     """
-    Return the root route of the input route. The input route *derived* itself may be its root route.
+    Return the root route of the input route. The input route itself may be its root route.
     """
     visited = set()
 
@@ -265,7 +265,10 @@ def getContexts(route: rules.Route, destination: Destination, model: entities.Mo
                        Destination.REGIONS_OF_VPC_PEERS_CUSTOM_ROUTING]:
         for peer in network.peers:
             peerNetwork = findNetwork(model, peer.peer_network)
+            if not peerNetwork: continue
+
             peerInPeer = next((peer for peer in peerNetwork.peers if peer.peer_network == network.url), None)
+            if not peerInPeer: continue
 
             if entities.NetworkPeer.NetworkPeeringState.INACTIVE in [peer.state, peerInPeer.state]: continue
 
@@ -668,6 +671,7 @@ def deriveAfterVpnTunnelRemoval(_model: entities.Model, vpnTunnel: Union[entitie
         vpnTunnel = findVpnTunnel(model, vpnTunnel)
 
     peerTunnel = findPeeringVpnTunnel(model, vpnTunnel)
+    if not peerTunnel: return model
 
     routes = list(filter(lambda r: r.next_hop_tunnel in [vpnTunnel.url, peerTunnel.url] and r.from_local, model.routes))
 
@@ -696,6 +700,7 @@ def deriveAfterBgpMedChanged(_model: entities.Model, vpnTunnel: Union[entities.V
         vpnTunnel = findVpnTunnel(model, vpnTunnel)
 
     peerTunnel = findPeeringVpnTunnel(model, vpnTunnel)
+    if not peerTunnel: return model
 
     routes = list(filter(lambda r: r.next_hop_tunnel == peerTunnel.url and r.from_local, model.routes))
 
