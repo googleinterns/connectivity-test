@@ -270,7 +270,7 @@ class TestDataPlane(unittest.TestCase):
         self.common(
             lambda model: derivationFunctions.deriveAfterBgpMedChanged(
                 model,
-                "projects/test-project-sq2/regions/us-west1/vpnTunnels/te4",
+                "projects/test-project-sq2/regions/us-west1/vpnTunnels/t4e",
                 50
             ),
             "test_data/case4/test_project_sq2_10062020_1.pb",
@@ -280,7 +280,7 @@ class TestDataPlane(unittest.TestCase):
         self.common(
             lambda model: derivationFunctions.deriveAfterBgpMedChanged(
                 model,
-                "projects/test-project-sq2/regions/us-west1/vpnTunnels/te4",
+                "projects/test-project-sq2/regions/us-west1/vpnTunnels/t4e",
                 -50
             ),
             "test_data/case4/test_project_sq2_10062020_2.pb",

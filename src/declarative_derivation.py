@@ -695,7 +695,9 @@ def deriveAfterBgpMedChanged(_model: entities.Model, vpnTunnel: Union[entities.V
     if isinstance(vpnTunnel, str):
         vpnTunnel = findVpnTunnel(model, vpnTunnel)
 
-    routes = list(filter(lambda r: r.next_hop_tunnel == vpnTunnel.url and r.from_local, model.routes))
+    peerTunnel = findPeeringVpnTunnel(model, vpnTunnel)
+
+    routes = list(filter(lambda r: r.next_hop_tunnel == peerTunnel.url and r.from_local, model.routes))
 
     for route in routes:
         derivedRoutes = FindDerivedRoutes(model, route)

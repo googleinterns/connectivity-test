@@ -239,16 +239,16 @@ def listBgpPeers(model: entities.Model, networkUrl: str) -> List[Tuple[entities.
             if tunnel.status != "ESTABLISHED" or peerTunnel.status != "ESTABLISHED": continue
             if tunnel.routing_type != entities.VPNTunnel.RoutingType.DYNAMIC: continue
 
-            # TODO this should present when the proto and pb are updated.
+            #TODO this should present when the proto and pb are updated.
             # Before that, we just assume the vpn tunnel accepts subnet routes.
-            if tunnel.HasField("cloud_router"):
+            if tunnel.HasField("cloud_router"):  # model.HasField("cloud_routers")
                 if not tunnel.advertise_subnet_routes:
                     router = findCloudRouter(model, tunnel.cloud_router)
                     willExport = tunnel.use_cloud_routers_advertisements and \
                                  router.advertise_subnet_routes
                     if not willExport: continue
             elif tunnel.url == "projects/test-project-sq2/regions/us-west1/vpnTunnels/t4e":
-                # TODO currently tunnel t4e is configured as not inheriting cloud router's configuration and not
+                #TODO currently tunnel t4e is configured as not inheriting cloud router's configuration and not
                 # advertising subnets. Delete this branch when the cloud router is included in the pb files
                 continue
 
