@@ -287,6 +287,26 @@ class TestDataPlane(unittest.TestCase):
             "test_data/case4/test_project_sq2_10062020_3.pb",
             keepPriority=True)
 
+        self.common(
+            lambda model: derivationFunctions.deriveAfterBgpMedChanged(
+                model,
+                "projects/test-project-sq2/regions/us-west1/vpnTunnels/te4-2",
+                200
+            ),
+            "test_data/case4/test_project_sq2_10202020_router_s4_1.pb",
+            "test_data/case4/test_project_sq2_10202020_router_s4_2.pb",
+            keepPriority=True)
+
+        self.common(
+            lambda model: derivationFunctions.deriveAfterBgpMedChanged(
+                model,
+                "projects/test-project-sq2/regions/us-west1/vpnTunnels/te4-2",
+                -200
+            ),
+            "test_data/case4/test_project_sq2_10202020_router_s4_2.pb",
+            "test_data/case4/test_project_sq2_10202020_router_s4_3.pb",
+            keepPriority=True)
+
 
 if __name__ == '__main__':
     unittest.main()

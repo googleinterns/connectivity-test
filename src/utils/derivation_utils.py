@@ -135,9 +135,10 @@ def getTrimmedRoutes(routes: List[rules.Route], keep_priority: bool = False) -> 
 def trimRoute(route, keep_priority=False):
     trimmed = rules.Route()
     trimmed.CopyFrom(route)
-    trimmed.id = "id"
-    trimmed.name = "name"
-    trimmed.url = "url"
+
+    for field in ["id", "name", "url", "creation_timestamp", "description"]:
+        trimmed.ClearField(field)
+
     trimmed.priority = route.priority if keep_priority else 0
     return trimmed
 
@@ -175,7 +176,8 @@ def clearNextHopsInRoute(derived):
     derived.ClearField("next_hop_vpn_gateway")
 
 
-def findPeeringVpnTunnel(model: entities.Model, vpnTunnel: Union[entities.VPNTunnel, str]) -> Optional[entities.VPNTunnel]:
+def findPeeringVpnTunnel(model: entities.Model, vpnTunnel: Union[entities.VPNTunnel, str]
+                         ) -> Optional[entities.VPNTunnel]:
     """
     Return the peering VPN tunnel of the current VPN tunnel.
     If the peering tunnel is beyond the input model, return None.
@@ -186,7 +188,8 @@ def findPeeringVpnTunnel(model: entities.Model, vpnTunnel: Union[entities.VPNTun
     gw = findVpnGateway(model, vpnTunnel.vpn_gateway)
 
     # find peer vpn tunnels from ips in gateway
-    peerTunnel = next((tunnel for tunnel in model.vpn_tunnels if tunnel.peer_ip == gw.ip[vpnTunnel.vpn_gateway_interface]), None)
+    peerTunnel = next(
+        (tunnel for tunnel in model.vpn_tunnels if tunnel.peer_ip == gw.ip[vpnTunnel.vpn_gateway_interface]), None)
 
     if vpnTunnel.status != "ESTABLISHED" or peerTunnel and peerTunnel.status != "ESTABLISHED": return None
 
@@ -198,6 +201,15 @@ def findNetworkForVpnTunnel(model: entities.Model, vpnTunnel: entities.VPNTunnel
     return findNetwork(model, gateway.network)
 
 
+def findCloudRouterForVpnTunnel(model: entities.Model, vpnTunnel: entities.VPNTunnel
+                                ) -> Tuple[entities.CloudRouter, entities.BgpPeering]:
+    for router in model.cloud_routers:
+        for peering in router.bgp_peerings:
+            if peering.linked_vpn_tunnel == vpnTunnel.url:
+                return router, peering
+
+    return None, None
+
 def listBgpPeers(model: entities.Model, networkUrl: str) -> List[Tuple[entities.Network, str, str]]:
     """
     Return a list of tuples, where each tuple element is:
@@ -205,9 +217,6 @@ def listBgpPeers(model: entities.Model, networkUrl: str) -> List[Tuple[entities.
 
     If a BGP peer is beyond the input model, skip that BGP peer.
     If the VPN tunnel connecting the BGP peer does not export subnet routes, skip this peer.
-
-    TODO this feature cannot be tested because the current test data do not contain the associated CloudRouter and
-    several fields like use_cloud_routers_advertisements in the vpn tunnel.
     """
     res = []
 
@@ -239,17 +248,23 @@ def listBgpPeers(model: entities.Model, networkUrl: str) -> List[Tuple[entities.
             if tunnel.status != "ESTABLISHED" or peerTunnel.status != "ESTABLISHED": continue
             if tunnel.routing_type != entities.VPNTunnel.RoutingType.DYNAMIC: continue
 
-            #TODO this should present when the proto and pb are updated.
-            # Before that, we just assume the vpn tunnel accepts subnet routes.
-            if tunnel.HasField("cloud_router"):  # model.HasField("cloud_routers")
-                if not tunnel.advertise_subnet_routes:
-                    router = findCloudRouter(model, tunnel.cloud_router)
-                    willExport = tunnel.use_cloud_routers_advertisements and \
-                                 router.advertise_subnet_routes
-                    if not willExport: continue
+            cloudRouter, bgpPeering = findCloudRouterForVpnTunnel(model, tunnel)
+
+            if cloudRouter:
+                advertiseSubnet = False
+                if bgpPeering.advertise_mode == entities.AdvertiseMode.CUSTOM:
+                    for group in bgpPeering.advertise_groups:
+                        if group == entities.AdvertisedGroup.ALL_SUBNETS:
+                            advertiseSubnet = True
+                else:
+                    for group in cloudRouter.bgp.advertised_groups:
+                        if group == entities.AdvertisedGroup.ALL_SUBNETS:
+                            advertiseSubnet = True
+
+                if not advertiseSubnet: continue
             elif tunnel.url == "projects/test-project-sq2/regions/us-west1/vpnTunnels/t4e":
-                #TODO currently tunnel t4e is configured as not inheriting cloud router's configuration and not
-                # advertising subnets. Delete this branch when the cloud router is included in the pb files
+                #TODO in previous test cases, tunnel t4e is configured as not inheriting cloud router's configuration
+                # and not advertising subnets. Delete this branch when the previous test data are all removed
                 continue
 
             peerTunnels.append(peerTunnel)

@@ -706,7 +706,7 @@ def deriveAfterBgpMedChanged(_model: entities.Model, vpnTunnel: Union[entities.V
 
     for route in routes:
         derivedRoutes = FindDerivedRoutes(model, route)
-        print("===========Deleting Routes============")
+        print("===========Changing Priorities of Routes============")
         derivedRoutes.append(route)
         print(derivedRoutes)
         for r in derivedRoutes:
