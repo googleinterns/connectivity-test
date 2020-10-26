@@ -23,6 +23,7 @@ import proto.cloud_network_model_pb2 as entities
 import proto.derivation_rules_pb2 as derivation
 import proto.rules_pb2 as rules
 from src.derivation_declarations.generators.root_generator import CommonGenerator
+from src.quota_checking import quotaChecking
 from src.utils.derivation_utils import findNetwork, listBgpPeers, REGION_LIST, toCamelCase, getTrimmedRoutes, trimRoute, \
     findVpnTunnel, findNetworkForVpnTunnel, findVpnGateway, genId, genHex, findSubnet, findPeeringVpnTunnel
 from src.utils.ip_utils import ipv4StrToRange
@@ -399,6 +400,7 @@ def Derive(model: entities.Model, start_routes: List[rules.Route],
     return res
 
 
+@quotaChecking
 def deriveAfterLearnedBgpAdvertisements(_model: entities.Model, vpnTunnel: Union[entities.VPNTunnel, str],
                                         prefixes: List[rules.Ipv4Range]) -> entities.Model:
     """
@@ -428,6 +430,7 @@ def deriveAfterLearnedBgpAdvertisements(_model: entities.Model, vpnTunnel: Union
     return model
 
 
+@quotaChecking
 def deriveAfterBgpWithdrawals(_model: entities.Model, vpnTunnel: Union[entities.VPNTunnel, str],
                               prefixes: List[rules.Ipv4Range]) -> entities.Model:
     """
@@ -459,6 +462,7 @@ def deriveAfterBgpWithdrawals(_model: entities.Model, vpnTunnel: Union[entities.
     return model
 
 
+@quotaChecking
 def deriveAfterSubnetAdded(_model: entities.Model, subnet: entities.Subnet) -> entities.Model:
     """
     When a subnet is added, the associated subnet route is created and propagated
@@ -498,6 +502,7 @@ def deriveAfterSubnetAdded(_model: entities.Model, subnet: entities.Subnet) -> e
     return model
 
 
+@quotaChecking
 def deriveAfterSubnetRemoved(_model: entities.Model, subnet: Union[entities.Subnet, str]) -> entities.Model:
     """
     the pre-requisite is that no instance is under this subnet.
@@ -535,6 +540,7 @@ def deriveAfterSubnetRemoved(_model: entities.Model, subnet: Union[entities.Subn
     return model
 
 
+@quotaChecking
 def deriveAfterIpRangesAdded(_model: entities.Model, subnet: Union[entities.Subnet, str],
                              ipRanges: List[Union[rules.Ipv4Range, str]]) -> entities.Model:
     """
@@ -579,6 +585,7 @@ def deriveAfterIpRangesAdded(_model: entities.Model, subnet: Union[entities.Subn
     return model
 
 
+@quotaChecking
 def deriveAfterIpRangeEnlarged(_model: entities.Model, subnet: Union[entities.Subnet, str],
                                ipRanges: List[Tuple[Union[rules.Ipv4Range, str], Union[rules.Ipv4Range, str]]]
                                ) -> entities.Model:
@@ -619,6 +626,7 @@ def deriveAfterIpRangeEnlarged(_model: entities.Model, subnet: Union[entities.Su
     return model
 
 
+@quotaChecking
 def deriveAfterStaticRouteAdded(_model: entities.Model, route: rules.Route) -> entities.Model:
     """
     Add the static route and propagate to peers
@@ -633,6 +641,7 @@ def deriveAfterStaticRouteAdded(_model: entities.Model, route: rules.Route) -> e
     return model
 
 
+@quotaChecking
 def deriveAfterStaticRouteRemoved(_model: entities.Model, route: rules.Route) -> entities.Model:
     """
     Remove the static route and propagate to peers
@@ -647,6 +656,7 @@ def deriveAfterStaticRouteRemoved(_model: entities.Model, route: rules.Route) ->
     return model
 
 
+@quotaChecking
 def deriveAfterStaticRouteUpdated(model: entities.Model,
                                   routes: List[Tuple[rules.Route, rules.Route]]) -> entities.Model:
     """
@@ -660,6 +670,7 @@ def deriveAfterStaticRouteUpdated(model: entities.Model,
     return model
 
 
+@quotaChecking
 def deriveAfterVpnTunnelRemoval(_model: entities.Model, vpnTunnel: Union[entities.VPNTunnel, str]) -> entities.Model:
     """
     Will remove all learned routes and custom prefixes on this side, and propagate the removal
@@ -687,7 +698,7 @@ def deriveAfterVpnTunnelRemoval(_model: entities.Model, vpnTunnel: Union[entitie
 
     return model
 
-
+@quotaChecking
 def deriveAfterBgpMedChanged(_model: entities.Model, vpnTunnel: Union[entities.VPNTunnel, str],
                              MED_diff: int) -> entities.Model:
     """
@@ -713,3 +724,4 @@ def deriveAfterBgpMedChanged(_model: entities.Model, vpnTunnel: Union[entities.V
             r.priority += MED_diff
 
     return model
+
