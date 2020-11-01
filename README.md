@@ -194,13 +194,13 @@ The generation of a single derived route is divided into several steps, calling 
 ## Currently supported derivation rules
 
 ### Overview: 
--	VPN: can advertise subnet routes and user specified prefixes. Static/dynamic routes are not advertised. 
--	Peering: will export subnet routes. can export custom routes (with no tags, not to Internet)
+-	Cloud Router: can advertise subnet routes and user specified prefixes. Static/dynamic routes are not advertised. 
+-	VPC Peering: will export subnet routes. can export custom routes (with no tags, not to Internet)
 -	Dynamic/static routes: only propagated for peering. Dynamic routes depend on the regional configurations. 
 
 ### Detailed rules for propagation via BGP and VPC peering
--	A VPN tunnel might not advertise subnet routes
--	A VPN tunnel always accepts all learned routes
+-	A cloud router might not advertise subnet routes
+-	A cloud router always accepts all learned routes
 -	A VPC always exports subnet routes
 -	A VPC always accepts subnet routes
 -	A VPC might not export custom routes
@@ -212,9 +212,9 @@ The generation of a single derived route is divided into several steps, calling 
 -	**A static route (with no tags and not to Internet)**
     *exported to all VPC peers as <ins>peering static routes</ins>*
 -	**A subnet route**
-    *exported to all VPC peers as <ins>peering subnet routes</ins> and VPN tunnels as <ins>BGP prefixes</ins>*
--	**A custom prefix in a VPN tunnel**
-    *learned by the peering VPN tunnel as a <ins>BGP prefix</ins>*
+    *exported to all VPC peers as <ins>peering subnet routes</ins> and Cloud Routers as <ins>BGP prefixes</ins>*
+-	**A custom prefix in a Cloud Router**
+    *learned by the peering Cloud Router as a <ins>BGP prefix</ins>*
     - <small>This is not a route, and thus not configured with a rule</small>
 -	**A dynamic route**: 
     *exported to all VPC peers as <ins>peering dynamic routes</ins>*
