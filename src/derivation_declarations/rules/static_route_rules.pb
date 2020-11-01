@@ -7,6 +7,7 @@ rules {
     next_hop_gateway: INTERNET_GATEWAY
   }
   lambda_filters: "any([attr.tag for attr in route.instance_filter.attributes])"
+  # The matching rules are not exported to any destinations.
 }
 
 rules {

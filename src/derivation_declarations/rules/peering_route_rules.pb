@@ -11,4 +11,5 @@ rules {
   filters {
     route_type: PEERING_DYNAMIC
   }
+  # The matching rules are not exported to any destinations.
 }

@@ -24,4 +24,5 @@ rules {
     route_type: DYNAMIC
     from_local: false
   }
+  # The matching routes are not exported further.
 }
