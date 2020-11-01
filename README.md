@@ -131,12 +131,14 @@ message DestinationAndGeneration {
   // The destinations have fixed builtin semantics in destination selection and actions.
   //   - VPC_PEERS:                  all active peering VPC networks
   //
-  //   - VPC_PEERS_CUSTOM_ROUTING:   all active peering VPC networks that import custom routes from the route's network,
-  //                                 and simultaneously, the route's network export custom routes to them.
+  //   - VPC_PEERS_CUSTOM_ROUTING:   all active peering VPC networks that import custom routes
+  //                                 from the route's network, and simultaneously, the route's
+  //                                 network export custom routes to them.
   //
-  //   - REGIONS_OF_VPC_PEERS_CUSTOM_ROUTING: all active peering VPC networks that import custom routes from the route's network,
-  //                                 and simultaneously, the route's network export custom routes to them. The route is
-  //                                 exported to all regions that the network has presence.
+  //   - REGIONS_OF_VPC_PEERS_CUSTOM_ROUTING: all active peering VPC networks that import 
+  //                                 custom routes from the route's network, and simultaneously,
+  //                                 the route's network export custom routes to them. The route
+  //                                 is exported to all regions that the network has presence.
   //
   //   - BGP_PEERS:                  all networks that hold one or more *live* BGP session with the current network, and
   //                                 the involved VPN tunnels in current network enable subnet advertising
