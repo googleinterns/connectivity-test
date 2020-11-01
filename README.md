@@ -163,8 +163,10 @@ message DestinationAndGeneration {
   // - update *next_hop_tunnel*
   // - delete other next hops
   enum Destination {
-    // VPC_PEERS works as a short cut for VPC_PEERS_NO_CUSTOM_ROUTING and VPC_PEERS_CUSTOM_ROUTING. It is first internally
-    // translated to VPC_PEERS_NO_CUSTOM_ROUTING and VPC_PEERS_CUSTOM_ROUTING, before any derivation process
+    // VPC_PEERS works as a short cut for VPC_PEERS_NO_CUSTOM_ROUTING
+    // and VPC_PEERS_CUSTOM_ROUTING. It is first internally translated 
+    // to VPC_PEERS_NO_CUSTOM_ROUTING and VPC_PEERS_CUSTOM_ROUTING, 
+    // before any derivation process
     VPC_PEERS = 0;
     VPC_PEERS_CUSTOM_ROUTING = 2;
     REGIONS_OF_VPC_PEERS_CUSTOM_ROUTING = 1;
