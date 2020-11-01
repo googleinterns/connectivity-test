@@ -235,25 +235,25 @@ The generation of a single derived route is divided into several steps, calling 
 
 Dynamic routes
 1. In a BGP session, an IP prefix is advertised or withdrawn from the BGP peer
-2. A VPN tunnel is removed (remove learned routes and derived routes)
+2. A VPN tunnel is removed (remove learned routes and derived routes of the associated BGP session)
 3. A custom IP prefix is added to or deleted from the BGP session of a VPN Tunnel, while the other end is also in GCP
 4. The MED of a BGP session is changed, then the priorities of custom route and dynamic routes are all updated 
 
 Subnet routes
 1. A subnet is added, (of course) with new IP ranges, or deleted. 
-2. An IP range is added to a subnet (the current GCP API does not support delete, but deleting is supported and tested in this derivation engine)
-3. An IP range of a subnet is changed (in the current GCP API, the IP range can only be larger, and only the primary range is adjustable)
+2. An IP range is added to a subnet (the current GCP API does not support deletion of IP ranges, but deleting is supported and tested in this derivation engine)
+3. An IP range of a subnet is changed (in the current GCP API, the IP range can only be enlarged, and only the primary range is adjustable)
 
 Static routes
 1. A static route is added or removed
 2. The priority, tags, etc. of a static route is changed (the current GCP API does not support modification, but this feature is supported and tested in this derivation engine)
 
 ### Debugging the root cause of an unexpected routing behavior
-All routes in the data plane model, together with the derivation relation as the directed edges, form a forester, where the root of each tree is the root route of all its offspring routes. 
-Many unexpected routing behaviors are caused by some undesired route. The derivation engine can help find the root route that generates an unexpected route, to faster the root-cause process for users (being it a end customer or some automation systems). 
+All routes in the data plane model, together with the derivation relation as the directed edges, form a forest, where the root of each tree is the root route of all its offspring routes. 
+Many unexpected routing behaviors are caused by some undesired route. The derivation engine can help find the root route that generates an unexpected route, to faster the root-cause process for users (being it an end customer or some automation systems). 
 
 ### Find out why a route is not generated
-The user may expect a route to be inserted based on the current configuration, but in GCP, the route is not inserted. This derivation engine can serve finding the cause by providing logs for the reference of the user. 
+The user may expect a route to be inserted based on the current configuration, but in dataplane, the route is not inserted. This derivation engine can serve finding the cause by providing logs for the reference of the user. 
 
 ## Run demo
 The demos are also the test cases. To run it on a Ubuntu machine, please execute the following commands in shell:
