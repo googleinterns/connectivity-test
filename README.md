@@ -140,11 +140,12 @@ message DestinationAndGeneration {
   //                                 the route's network export custom routes to them. The route
   //                                 is exported to all regions that the network has presence.
   //
-  //   - BGP_PEERS:                  all networks that hold one or more *live* BGP session with the current network, and
-  //                                 the involved VPN tunnels in current network enable subnet advertising
+  //   - BGP_PEERS:                  all networks that hold one or more *live* BGP session with 
+  //                                 the current network, and the involved VPN tunnels in current
+  //                                 network enable subnet advertising.
   //
-  //   - OTHER_REGIONS_WHEN_GLOBAL_ROUTING:   all regions other than the route's region, when the current network enables
-  //                                          global routing
+  //   - OTHER_REGIONS_WHEN_GLOBAL_ROUTING:   all regions other than the route's region, when the
+  //                                 current network enables global routing.
   //
   // Some fixed actions are bound to each destination as part of the semantics of the destination.
   // These semantics are written as rules
