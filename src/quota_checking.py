@@ -31,27 +31,28 @@ Only applicable to VPC networks in global dynamic routing mode: Maximum number o
 learned routes that can be applied to subnets in a given region by Cloud Routers from different regions 	100
 """
 
+MAX_NUM_ROUTERS_PER_REGION = 5
+MAX_DEST_IP_RANGES_OF_ROUTES_PER_REGION = 200
 
 def checkCloudRouters(model):
     cloudRouters = defaultdict(lambda: [])  # network, region -> cloud router
     for router in model.cloud_routers:
-        cloudRouters[router.network_uri, router.region].append(router.url)
+        cloudRouters[router.network_uri, router.region].append(router.uri)
 
-    for network, region, routers in cloudRouters.items():
-        if len(routers) > 5:
+    for (network, region), routers in cloudRouters.items():
+        if len(routers) > MAX_NUM_ROUTERS_PER_REGION:
             print("Cloud routers exceeding quota at (%s, %s): %s" % (network, region, routers))
 
 
 def checkRoutes(model):
-    tunnelToRoute = defaultdict(lambda: set())  # vpnTunnel -> destination of routes
     regionToDest = defaultdict(lambda: set())  # network, region -> destination of routes, as an IP ranges
 
     for route in model.routes:
         if route.route_type == rules.Route.DYNAMIC:
             regionToDest[route.instance_filter.network, route.region].add(ipv4RangeToStr(route.dest_range))
 
-    for network, region, dests in regionToDest:
-        if len(dests) > 200:
+    for (network, region), dests in regionToDest.items():
+        if len(dests) > MAX_DEST_IP_RANGES_OF_ROUTES_PER_REGION:
             print("Dynamic routes exceeding quota at (%s, %s): %s" % (network, region, len(dests)))
 
 
