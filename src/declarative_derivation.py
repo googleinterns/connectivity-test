@@ -373,7 +373,7 @@ def Derive(model: entities.Model, start_routes: List[rules.Route],
                 printWithDepth("------------Destination-------------\n%s" % (str(destination)))
                 contexts = getContexts(route, destination.destination, model)
 
-                printWithDepth("------------Contexts-------------\n%s" % (str(contexts)))
+                printWithDepth("------------%d Contexts-------------" % (len(contexts)))
                 for context in contexts:
                     # For each context, derive a route based on the current info
                     printWithDepth("------------Context-------------\n%s" % (str(context)))
