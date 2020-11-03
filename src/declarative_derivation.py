@@ -340,14 +340,19 @@ def Derive(model: entities.Model, start_routes: List[rules.Route],
 
     if not start_routes: start_routes = IdentifyRootRoutes(model)
 
+    # The route propagation process forms a number of trees where the nodes are routes and the edges are derivations.
+    # The derivation is the traverse of the forest. Here we use depth first search.
     def dfs(start_routes: List[rules.Route], depth: int = 0) -> List[List[rules.Route]]:
+        # a helper function for better logging
         def printWithDepth(s: str):
             for line in s.split("\n"):
                 print(("| " * depth) + line)
 
-        res = [[] for route in start_routes]
+        # the i-th element is a list, containing all derived routes of the i-th start route
+        res = [[] for _ in start_routes]
 
         for i, route in enumerate(start_routes):
+            # Find the first rule matching route
             rule: derivation.RouteDerivationRule = None
             for _rule in DerivationRules:
                 if match(route, _rule):
@@ -361,24 +366,40 @@ def Derive(model: entities.Model, start_routes: List[rules.Route],
             printWithDepth("========Derive Route==========\n%s" % str(route))
             printWithDepth("--------Matched Rule----------\n%s" % str(rule))
 
-            # from this line, destination is never VPC_PEERS
+            # destinations are encoded in rules
+            # A destination may indicate multiple routes to derives (e.g., inserting dynamic routes to regions)
+            # So destination contexts are calculated from the route, destination, and model
             for destination in rule.destinations:
                 printWithDepth("------------Destination-------------\n%s" % (str(destination)))
                 contexts = getContexts(route, destination.destination, model)
 
                 printWithDepth("------------Contexts-------------\n%s" % (str(contexts)))
                 for context in contexts:
+                    # For each context, derive a route based on the current info
                     printWithDepth("------------Context-------------\n%s" % (str(context)))
                     derived = deriveRoute(model, route, context, destination.destination, rule.name)
                     printWithDepth("---------Derived Route----------\n%s" % (str(derived)))
 
                     res[i].append(derived)
 
+                    # Continue traversing in a depth-first manner
                     returned = dfs([derived], depth + 1)
                     res[i] += returned[0]
         return res
 
     res = dfs(start_routes)
+
+    # The routes are derived as new route objects/protos. But for each derived route, there are two possibilities:
+    #
+    # 1. The route is present in the model: we find the existing route as the derived one.
+    #      This happens when we are finding derived routes of a route, instead of completing the model
+    #      And happens when we just want to complete a partial model that is missing some non-root routes. Not possible
+    #      when everything works. Just we have this ability.
+    # 2. The route is absent in the model: insert the route, if *__insert_missing_derived_routes* is set.
+
+    # To judge a route is present or not: trim it and trim all routes and see if there is an exact match.
+    # Trimming a route will discard the non-critical fields like name and id, which are also hard, if not impossible,
+    # to predict for the new route.
 
     routeIndex = defaultdict(lambda: None)  # from string of the trimmed route to the original route
 
