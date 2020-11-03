@@ -32,7 +32,7 @@ message GKECluster {
   // GKE cluster name, prefixed with project name.
   optional string name = 2;
   // GKE cluster self-link.
-  optional string uri = 3;
+  optional string url = 3;
 
   // Private IP of the GKE master if any.
   optional uint32 master_private_ip = 4;

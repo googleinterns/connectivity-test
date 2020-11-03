@@ -16,12 +16,12 @@ syntax = "proto2";
 
 package google.cloud.network.reachability;
 
+import "google/protobuf/timestamp.proto";
 import "proto/kubernetes.proto";
 import "proto/model_errors.proto";
 import "proto/rules.proto";
-import "google/protobuf/timestamp.proto";
 
-// Next id: 34
+// Next id: 35
 message Model {
   // Metadata of the project.
   optional Metadata metadata = 22;
@@ -52,7 +52,6 @@ message Model {
   repeated ExternalLBIPv6Address elb_v6_addresses = 11;
   repeated VPNGateway vpn_gateways = 15;
   repeated VPNTunnel vpn_tunnels = 16;
-  repeated CloudRouter cloud_routers = 34;
   repeated InstanceGroup instance_groups = 17;
   repeated NetworkEndpointGroup network_endpoint_groups = 18;
   repeated BackendService backend_services = 19;
@@ -72,6 +71,8 @@ message Model {
 
   // FirewallConfig by its URI.
   map<string, FirewallConfig> firewall_configs = 33;
+
+  repeated CloudRouter cloud_routers = 34;
 }
 
 message Metadata {
@@ -438,28 +439,6 @@ message VPNTunnel {
 
   // Status of VPN tunnel.
   optional string status = 9;
-
-  // If routing_type is DYNAMIC: The url of the local cloud router that this VPN tunnel is attached to.
-  optional string cloud_router = 12;
-
-  // If routing_type is DYNAMIC.
-  optional bool use_cloud_routers_advertisements = 13;
-
-  // If routing_type is DYNAMIC, and do not use cloud route's advertisements
-  optional bool advertise_subnet_routes = 14;
-
-  // If routing_type is DYNAMIC
-  optional uint32 MED = 15;
-}
-
-message CloudRouter {
-  optional string id = 1;
-  optional string name = 2;
-  optional string url = 3;
-  optional string network = 4;
-  optional string region = 5;
-  optional bool advertise_subnet_routes = 6;
-  repeated Ipv4Range custom_prefixes = 7;
 }
 
 message InstanceGroup {
@@ -609,4 +588,87 @@ message MultiTierFirewallConfig {
   // starting from organization node down to network node, that is in top-down
   // order.
   repeated string firewall_config_uris = 1;
+}
+
+// Whether to use Google managed advertisement or customer defined
+// advertisement.
+enum AdvertiseMode {
+  ADVERTISE_MODE_UNSPECIFIED = 0;
+  DEFAULT = 1;
+  CUSTOM = 2;
+}
+
+// Named groups of prefixes that the router can auto-advertise.
+enum AdvertisedGroup {
+  ADVERTISED_GROUP_UNSPECIFIED = 0;
+  // Advertise all available subnets (including peer VPC subnets).
+  ALL_SUBNETS = 1;
+  // Advertise the router's own VPC subnets.
+  ALL_VPC_SUBNETS = 2;
+  // Advertise subnets in peered network of the router's VPC.
+  ALL_PEER_VPC_SUBNETS = 3;
+}
+
+// Configurations of a BGP peering of a cloud router.
+message BgpPeering {
+  // Name of the BGP peering.
+  optional string name = 1;
+  // Name of the interface of the cloud router used to establish BGP peering.
+  optional string interface_name = 2;
+  // IPv4 address of the local interface.
+  optional uint32 ip_address = 3;
+  // IPv4 address of the interface in the peering router.
+  optional uint32 peer_ip_address = 4;
+  // AS number of the peering router.
+  optional uint32 peer_asn = 5;
+  // The priority of routes advertised to the peering router.
+  optional uint32 advertised_route_priority = 6;
+  // Which mode to use for advertisement. Options are DEFAULT and CUSTOM.
+  optional AdvertiseMode advertise_mode = 7;
+  // Prefix groups to advertise in CUSTOM mode.
+  repeated AdvertisedGroup advertise_groups = 8;
+  // Custom prefixes configured by user to advertise in addition to prefix
+  // groups in CUSTOM mode.
+  repeated Ipv4Range advertised_ip_ranges = 9;
+  oneof linked_resource {
+    // The URI of linked VPN tunnel.
+    string linked_vpn_tunnel = 10;
+    // The URI of linked interconnect attachment.
+    string linked_interconnect_attachment = 11;
+  }
+  message PeeringStatus {
+    // The list of IP ranges that the BGP peering is advertising.
+    repeated Ipv4Range advertised_ip_ranges = 1;
+  }
+  optional PeeringStatus peering_status = 12;
+}
+
+// Configurations of BGP of a cloud router.
+message BgpConfig {
+  // AS number.
+  optional uint32 asn = 1;
+  // Which mode to use for advertisement. Options are DEFAULT and CUSTOM.
+  optional AdvertiseMode advertise_mode = 2;
+  // Prefix groups to advertise in CUSTOM mode.
+  repeated AdvertisedGroup advertised_groups = 3;
+  // Custom prefixes to advertise in addition to prefix groups in CUSTOM mode.
+  repeated Ipv4Range advertised_ip_ranges = 9;
+}
+
+// Configurations of cloud router and its BGP peers.
+message CloudRouter {
+  // ID of the cloud router.
+  optional string id = 1;
+  // Name of the cloud router.
+  optional string name = 2;
+  // region of the cloud router.
+  optional string region = 3;
+  // URI of the network of the cloud router.
+  optional string network_uri = 4;
+  // URI of the cloud router.
+  optional string uri = 5;
+  // BGP configurations of the cloud router.
+  optional BgpConfig bgp = 6;
+  // Configurations of BGP peerings of the router.
+  repeated BgpPeering bgp_peerings = 7;
 }
