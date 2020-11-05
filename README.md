@@ -270,4 +270,10 @@ protoc --proto_path=./ --python_out=./ proto/*.proto
 python3 -m unittest src.declarative_derivation_test.TestDataPlane
 ```
 
-Currently 11 tests associated with the use cases are carried out in sequence.  
+Single test can be executed by
+```bash
+python3 -m unittest src.declarative_derivation_test.TestDataPlane.test_deriveAfterSubnetAdded
+```
+
+Currently 11 tests associated with the use cases are carried out in sequence. 
+ 
