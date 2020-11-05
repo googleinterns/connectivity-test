@@ -253,13 +253,17 @@ def listBgpPeers(model: entities.Model, networkUrl: str) -> List[Tuple[entities.
             if cloudRouter:
                 advertiseSubnet = False
                 if bgpPeering.advertise_mode == entities.AdvertiseMode.CUSTOM:
+                    # BGP in custom mode, disregard the router's config
                     for group in bgpPeering.advertise_groups:
                         if group == entities.AdvertisedGroup.ALL_SUBNETS:
                             advertiseSubnet = True
-                else:
-                    for group in cloudRouter.bgp.advertised_groups:
-                        if group == entities.AdvertisedGroup.ALL_SUBNETS:
-                            advertiseSubnet = True
+                else: # BGP session not custom, inheriting the cloud router's config
+                    if cloudRouter.bgp.advertise_mode == entities.AdvertiseMode.CUSTOM:
+                        for group in cloudRouter.bgp.advertised_groups:
+                            if group == entities.AdvertisedGroup.ALL_SUBNETS:
+                                advertiseSubnet = True
+                    else:
+                        advertiseSubnet = True
 
                 if not advertiseSubnet: continue
             elif tunnel.url == "projects/test-project-sq2/regions/us-west1/vpnTunnels/t4e":
