@@ -15,7 +15,7 @@ import importlib
 import os
 from collections import defaultdict
 from inspect import getmembers, isfunction
-from typing import List, Any, Dict, Callable, Union, Tuple
+from typing import List, Any, Dict, Callable, Union, Tuple, Set
 
 from google.protobuf import text_format
 
@@ -25,7 +25,8 @@ import proto.rules_pb2 as rules
 from src.derivation_declarations.generators.root_generator import CommonGenerator
 from src.quota_checking import quotaChecking
 from src.utils.derivation_utils import findNetwork, listBgpPeers, REGION_LIST, toCamelCase, getTrimmedRoutes, trimRoute, \
-    findVpnTunnel, findNetworkForVpnTunnel, findVpnGateway, genId, genHex, findSubnet, findPeeringVpnTunnel
+    findVpnTunnel, findNetworkForVpnTunnel, findVpnGateway, genId, genHex, findSubnet, findPeeringVpnTunnel, \
+    PEERING_ROUTE_TYPES
 from src.utils.ip_utils import ipv4StrToRange
 from src.utils.url_parsers import ParseProjectFromUrl
 
@@ -146,31 +147,49 @@ def IdentifyRootRoutes(model: entities.Model) -> List[rules.Route]:
     """
     res = []
 
-    notRoot = []  # notRoot = set()  # Error due to "unhashable object"
+    # storing the string of the trimmed routes. Cannot store routes directly because ProtoBufs are not hashable
+    notRoot: Set[str] = set()
 
     for route in model.routes:
-        if route in notRoot: continue
+        if str(trimRoute(route)) in notRoot: continue
+
         for derived in FindDerivedRoutes(model, route):
-            notRoot.append(derived)
+            notRoot.add(str(trimRoute(derived)))
+
+    for route in model.routes:
+        if str(trimRoute(route)) not in notRoot:
+            res.append(route)
 
     return res
 
 
-def FindRootRoute(model: entities.Model, derived: rules.Route) -> rules.Route:
+def FindRootRoute(model: entities.Model, _derived: rules.Route) -> rules.Route:
     """
     Return the root route of the input route. The input route itself may be its root route.
     """
-    visited = set()
 
-    if derived not in model.routes:
-        raise ValueError("The input derived route does not present in the specified model")
+    # storing the string of the trimmed routes. Cannot store routes directly because ProtoBufs are not hashable
+    notRoot: Set[str] = set()
+    routeToDescendants: Dict[str, List[rules.Route]] = defaultdict(lambda: [])
 
     for route in model.routes:
-        if route in visited: continue
-        for route in FindDerivedRoutes(model, route):
-            visited.add(route)
-            if derived in visited:
-                return route
+        routeStr = str(trimRoute(route))
+        routeToDescendants[routeStr] = [route]
+
+    for route in model.routes:
+        routeStr = str(trimRoute(route))
+        if routeStr in notRoot: continue
+
+        for derived in FindDerivedRoutes(model, route):
+            derived = str(trimRoute(derived))
+            notRoot.add(derived)
+
+            routeToDescendants[routeStr] += routeToDescendants[derived]
+            del routeToDescendants[derived]
+
+    for route, descendants in routeToDescendants.items():
+        if _derived in descendants:
+            return descendants[0]
 
 
 def FindDerivedRoutes(model: entities.Model, start_route: rules.Route) -> List[rules.Route]:
@@ -318,7 +337,7 @@ def deriveRoute(model: entities.Model, route: rules.Route, context: DestinationC
     return derived
 
 
-def Derive(model: entities.Model, start_routes: List[rules.Route],
+def Derive(model: entities.Model, start_routes: List[rules.Route] = None,
            __insert_missing_derived_routes: bool = True) -> List[List[rules.Route]]:
     """
     Derive routes in the input model, starting from the routes *start_routes*.
@@ -718,6 +737,7 @@ def deriveAfterVpnTunnelRemoval(_model: entities.Model, vpnTunnel: Union[entitie
     model.vpn_tunnels.remove(vpnTunnel)
 
     return model
+
 
 @quotaChecking
 def deriveAfterBgpMedChanged(_model: entities.Model, vpnTunnel: Union[entities.VPNTunnel, str],
