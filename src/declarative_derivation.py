@@ -145,30 +145,37 @@ def IdentifyRootRoutes(model: entities.Model) -> List[rules.Route]:
     Return the root routes in the parameter *model*.
     The root routes are defined as routes not derived by others
     """
-    res = []
 
-    # storing the string of the trimmed routes. Cannot store routes directly because ProtoBufs are not hashable
-    notRoot: Set[str] = set()
+    rootRoutes = FindRootRoute(model, model.routes)
+    ids = set()
 
-    for route in model.routes:
-        if str(trimRoute(route)) in notRoot: continue
+    i = 0
+    while i < len(rootRoutes):
+        route = rootRoutes[i]
+        if route.id in ids:
+            del rootRoutes[i]
+        else:
+            ids.add(route.id)
+            i += 1
 
-        for derived in FindDerivedRoutes(model, route):
-            notRoot.add(str(trimRoute(derived)))
-
-    for route in model.routes:
-        if str(trimRoute(route)) not in notRoot:
-            res.append(route)
-
-    return res
+    return rootRoutes
 
 
-def FindRootRoute(model: entities.Model, _derived: rules.Route) -> rules.Route:
+def FindRootRoute(model: entities.Model, _derived: Union[List[rules.Route], rules.Route]) \
+        -> Union[List[rules.Route], rules.Route]:
     """
     Return the root route of the input route. The input route itself may be its root route.
     """
 
     # storing the string of the trimmed routes. Cannot store routes directly because ProtoBufs are not hashable
+
+    try:
+        assert isinstance(_derived[0], rules.Route) or isinstance(_derived, list)
+        multiple = True
+    except:
+        multiple = False
+        _derived = [_derived]
+
     notRoot: Set[str] = set()
     routeToDescendants: Dict[str, List[rules.Route]] = defaultdict(lambda: [])
 
@@ -187,9 +194,14 @@ def FindRootRoute(model: entities.Model, _derived: rules.Route) -> rules.Route:
             routeToDescendants[routeStr] += routeToDescendants[derived]
             del routeToDescendants[derived]
 
+    res = [None] * len(_derived)
     for route, descendants in routeToDescendants.items():
-        if _derived in descendants:
-            return descendants[0]
+        for descendant in descendants:
+            for i, derived in enumerate(_derived):
+                if trimRoute(descendant) == trimRoute(derived):
+                    res[i] = descendants[0]
+
+    return res if multiple else res[0]
 
 
 def FindDerivedRoutes(model: entities.Model, start_route: rules.Route) -> List[rules.Route]:
@@ -765,4 +777,3 @@ def deriveAfterBgpMedChanged(_model: entities.Model, vpnTunnel: Union[entities.V
             r.priority += MED_diff
 
     return model
-
