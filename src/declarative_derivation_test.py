@@ -314,8 +314,9 @@ class TestDataPlane(unittest.TestCase):
 
         rootRoutes = derivationFunctions.IdentifyRootRoutes(model)
 
-        for root in rootRoutes:
-            self.assertEqual(derivationFunctions.FindRootRoute(model, root), root)
+        derivedRootRoutes = derivationFunctions.FindRootRoute(model, rootRoutes)
+
+        self.assertEqual(derivedRootRoutes, rootRoutes)
 
         derived = derivationFunctions.Derive(model, rootRoutes)
 
